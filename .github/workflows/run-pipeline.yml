@@ -1,0 +1,80 @@
+name: Run Video Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      video_url:
+        description: "処理する動画の URL"
+        required: true
+        type: string
+      language:
+        description: "文字起こし言語 (ja / en など)"
+        default: "ja"
+        required: false
+        type: string
+      whisper_model:
+        description: "Whisper モデル (tiny / base / small / medium / large-v3)"
+        default: "medium"
+        required: false
+        type: string
+      skip_refine:
+        description: "Gemini によるフィラー除去をスキップする"
+        default: false
+        required: false
+        type: boolean
+      noise_db:
+        description: "無音判定閾値 (dB, 例: -30)"
+        default: "-30"
+        required: false
+        type: string
+      min_silence:
+        description: "最小無音長 (秒, 例: 0.5)"
+        default: "0.5"
+        required: false
+        type: string
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install Python dependencies
+        run: pip install -e .
+
+      - name: Download video
+        run: |
+          curl -fL "${{ inputs.video_url }}" -o input_video.mp4
+          echo "Downloaded: $(du -sh input_video.mp4 | cut -f1)"
+
+      - name: Run pipeline
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          WHISPER_MODEL: ${{ inputs.whisper_model }}
+          WORK_DIR: ./output
+        run: |
+          ARGS="input_video.mp4 --language ${{ inputs.language }}"
+          ARGS="$ARGS --noise-db ${{ inputs.noise_db }}"
+          ARGS="$ARGS --min-silence ${{ inputs.min_silence }}"
+          if [ "${{ inputs.skip_refine }}" = "true" ]; then
+            ARGS="$ARGS --skip-refine"
+          fi
+          python scripts/run_pipeline.py $ARGS
+
+      - name: Upload rendered video
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pipeline-output
+          path: output/
+          retention-days: 7
