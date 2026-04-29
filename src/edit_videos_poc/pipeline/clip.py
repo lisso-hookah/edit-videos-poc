@@ -30,9 +30,9 @@ def clip_video(
 
     filters: list[str] = []
     if top_text:
-        filters.append(_drawtext(top_text, font, font_size, text_color, "y=(h-text_h)/2-200"))
+        filters.append(_drawtext(top_text, font, font_size, text_color, "y=(h-text_h)/2-400"))
     if bottom_text:
-        filters.append(_drawtext(bottom_text, font, font_size, text_color, "y=(h+text_h)/2+200"))
+        filters.append(_drawtext(bottom_text, font, font_size, text_color, "y=(h+text_h)/2+400"))
 
     if filters:
         cmd += ["-vf", ",".join(filters), "-c:a", "copy"]
