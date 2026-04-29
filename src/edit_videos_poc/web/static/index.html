@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Edit Videos</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #1c2128;
+  --border: #30363d;
+  --text: #c9d1d9;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --success: #3fb950;
+  --error: #f85149;
+  --warn: #d29922;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+header h1 { font-size: 17px; font-weight: 600; color: #fff; }
+header span { font-size: 22px; }
+
+.layout {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 28px 24px;
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 28px;
+}
+@media (max-width: 800px) {
+  .layout { grid-template-columns: 1fr; }
+}
+
+/* ── Left panel ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+}
+.card-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 14px; }
+
+/* Upload zone */
+.drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  padding: 36px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+  user-select: none;
+}
+.drop-zone:hover, .drop-zone.over {
+  border-color: var(--accent);
+  background: rgba(88,166,255,.05);
+}
+.drop-zone .icon { font-size: 32px; display: block; margin-bottom: 10px; }
+.drop-zone .hint { color: var(--muted); font-size: 12px; margin-top: 6px; }
+
+.file-pill {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-top: 10px;
+}
+.file-pill.show { display: flex; }
+.file-pill .name { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+.file-pill .size { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.file-pill .remove { cursor: pointer; color: var(--muted); font-size: 16px; line-height: 1; }
+.file-pill .remove:hover { color: var(--error); }
+
+/* Tabs */
+.tabs { display: flex; margin-top: 20px; border-bottom: 1px solid var(--border); }
+.tab-btn {
+  flex: 1;
+  padding: 9px 4px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: color .15s;
+  margin-bottom: -1px;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Form */
+.panel { padding: 18px 0 0; }
+.fg { margin-bottom: 14px; }
+.fg label { display: block; font-size: 12px; color: var(--muted); font-weight: 500; margin-bottom: 5px; }
+.fg label .req { color: var(--error); }
+.fg input[type=text], .fg input[type=number], .fg select {
+  width: 100%;
+  padding: 7px 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  transition: border-color .15s;
+}
+.fg input:focus, .fg select:focus { border-color: var(--accent); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fg.check { display: flex; align-items: center; gap: 8px; }
+.fg.check label { margin: 0; color: var(--text); font-size: 13px; }
+.fg.check input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color: var(--accent); }
+
+/* BG image sub-upload */
+.sub-upload {
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  text-align: center;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--muted);
+  transition: border-color .15s;
+}
+.sub-upload:hover { border-color: var(--accent); color: var(--text); }
+
+/* Run button */
+.run-btn {
+  width: 100%;
+  padding: 10px;
+  margin-top: 6px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.run-btn:hover { opacity: .85; }
+.run-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+/* ── Right panel: Jobs ── */
+.jobs-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.jobs-header h2 { font-size: 15px; font-weight: 600; }
+.badge-count {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1px 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.job-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  transition: border-color .2s;
+}
+.job-card.running { border-color: rgba(88,166,255,.4); }
+.job-card.done { border-color: rgba(63,185,80,.3); }
+.job-card.failed { border-color: rgba(248,81,73,.3); }
+
+.job-top { display: flex; align-items: center; gap: 10px; }
+.badge {
+  padding: 2px 9px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.badge-queued  { background: rgba(139,148,158,.15); color: var(--muted); }
+.badge-running { background: rgba(88,166,255,.15);  color: var(--accent); }
+.badge-done    { background: rgba(63,185,80,.15);   color: var(--success); }
+.badge-failed  { background: rgba(248,81,73,.15);   color: var(--error); }
+
+.job-name { font-weight: 600; font-size: 13px; }
+.job-id   { font-family: monospace; font-size: 11px; color: var(--muted); }
+.job-time { font-size: 11px; color: var(--muted); margin-left: auto; white-space: nowrap; }
+
+.prog-wrap { height: 4px; background: var(--border); border-radius: 2px; margin: 10px 0 6px; overflow: hidden; }
+.prog-fill  { height: 100%; border-radius: 2px; transition: width .5s ease; background: var(--accent); }
+.prog-fill.done   { background: var(--success); }
+.prog-fill.failed { background: var(--error); }
+
+.job-foot { display: flex; align-items: center; gap: 10px; }
+.job-lbl  { font-size: 12px; color: var(--muted); flex: 1; }
+.job-pct  { font-size: 12px; font-weight: 700; }
+
+.dl-btn {
+  padding: 4px 12px;
+  background: var(--success);
+  color: #000;
+  border: none;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+.dl-btn:hover { opacity: .85; }
+
+.err-box {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: rgba(248,81,73,.08);
+  border: 1px solid rgba(248,81,73,.2);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--error);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.empty { text-align: center; color: var(--muted); padding: 48px 0; }
+.empty .empty-icon { font-size: 36px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+
+<header>
+  <span>🎬</span>
+  <h1>Edit Videos</h1>
+</header>
+
+<div class="layout">
+
+  <!-- ── Left: Upload + Config ── -->
+  <div>
+    <div class="card">
+      <div class="card-title">動画ファイル</div>
+
+      <div class="drop-zone" id="dropZone">
+        <span class="icon">📂</span>
+        <div>ドラッグ＆ドロップ または クリックして選択</div>
+        <div class="hint">MP4 / MOV / WAV</div>
+        <input type="file" id="fileInput" accept=".mp4,.mov,.wav" style="display:none">
+      </div>
+      <div class="file-pill" id="filePill">
+        <span style="font-size:18px">🎥</span>
+        <span class="name" id="fileName"></span>
+        <span class="size" id="fileSize"></span>
+        <span class="remove" id="removeFile" title="削除">×</span>
+      </div>
+
+      <!-- Pipeline tabs -->
+      <div class="tabs">
+        <button class="tab-btn active" data-p="pipeline">Video</button>
+        <button class="tab-btn" data-p="short">Short</button>
+        <button class="tab-btn" data-p="clip">Clip</button>
+      </div>
+
+      <!-- ── Video Pipeline panel ── -->
+      <div class="panel" id="panel-pipeline">
+        <div class="row2">
+          <div class="fg">
+            <label>言語</label>
+            <select id="p-lang">
+              <option value="ja" selected>ja（日本語）</option>
+              <option value="en">en（English）</option>
+              <option value="zh">zh（中文）</option>
+              <option value="ko">ko（한국어）</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Whisper モデル</label>
+            <select id="p-whisper">
+              <option value="tiny">tiny（最速）</option>
+              <option value="base">base</option>
+              <option value="small">small</option>
+              <option value="medium" selected>medium（推奨）</option>
+              <option value="large-v3">large-v3（高精度）</option>
+            </select>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="fg">
+            <label>字幕カラー</label>
+            <select id="p-color">
+              <option value="yellow" selected>yellow（黄）</option>
+              <option value="white">white（白）</option>
+              <option value="red">red（赤）</option>
+              <option value="blue">blue（青）</option>
+              <option value="green">green（緑）</option>
+              <option value="orange">orange（橙）</option>
+              <option value="black">black（黒）</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>無音閾値 (dB)</label>
+            <input type="number" id="p-noisedb" value="-30">
+          </div>
+        </div>
+        <div class="row2">
+          <div class="fg">
+            <label>最小無音長 (秒)</label>
+            <input type="number" id="p-minsilence" value="0.5" step="0.1">
+          </div>
+          <div></div>
+        </div>
+        <div class="row2">
+          <div class="fg check">
+            <input type="checkbox" id="p-skiprefine">
+            <label for="p-skiprefine">Gemini 除去スキップ</label>
+          </div>
+          <div class="fg check">
+            <input type="checkbox" id="p-thumbnail">
+            <label for="p-thumbnail">サムネイル生成</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Short Video panel ── -->
+      <div class="panel" id="panel-short" style="display:none">
+        <div class="row2">
+          <div class="fg">
+            <label>言語</label>
+            <select id="s-lang">
+              <option value="ja" selected>ja（日本語）</option>
+              <option value="en">en（English）</option>
+              <option value="zh">zh（中文）</option>
+              <option value="ko">ko（한국어）</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Whisper モデル</label>
+            <select id="s-whisper">
+              <option value="tiny">tiny（最速）</option>
+              <option value="base">base</option>
+              <option value="small">small</option>
+              <option value="medium" selected>medium（推奨）</option>
+              <option value="large-v3">large-v3（高精度）</option>
+            </select>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="fg">
+            <label>字幕カラー</label>
+            <select id="s-color">
+              <option value="yellow" selected>yellow（黄）</option>
+              <option value="white">white（白）</option>
+              <option value="red">red（赤）</option>
+              <option value="blue">blue（青）</option>
+              <option value="green">green（緑）</option>
+              <option value="orange">orange（橙）</option>
+              <option value="black">black（黒）</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>背景タイプ</label>
+            <select id="s-bgtype" onchange="refreshBgOpts()">
+              <option value="blur" selected>blur（動画ぼかし）</option>
+              <option value="color">color（単色）</option>
+              <option value="image">image（静止画ぼかし）</option>
+            </select>
+          </div>
+        </div>
+        <!-- blur strength: shown for blur + image -->
+        <div id="s-blur-row">
+          <div class="fg">
+            <label>ぼかし強度</label>
+            <input type="number" id="s-blursigma" value="40">
+          </div>
+        </div>
+        <!-- color: shown for color -->
+        <div id="s-color-row" style="display:none">
+          <div class="fg">
+            <label>背景色</label>
+            <select id="s-bgcolor">
+              <option value="black" selected>black（黒）</option>
+              <option value="white">white（白）</option>
+              <option value="gray">gray（グレー）</option>
+              <option value="navy">navy（紺）</option>
+            </select>
+          </div>
+        </div>
+        <!-- image upload: shown for image -->
+        <div id="s-image-row" style="display:none">
+          <div class="fg">
+            <label>背景画像</label>
+            <div class="sub-upload" id="bgDropZone">
+              クリックして背景画像を選択（JPG / PNG）
+              <input type="file" id="bgInput" accept=".jpg,.jpeg,.png" style="display:none">
+            </div>
+            <div style="font-size:12px;color:var(--muted);margin-top:5px" id="bgFileName">未選択</div>
+          </div>
+        </div>
+        <div class="fg check">
+          <input type="checkbox" id="s-skiprefine">
+          <label for="s-skiprefine">Gemini 除去スキップ</label>
+        </div>
+      </div>
+
+      <!-- ── Clip panel ── -->
+      <div class="panel" id="panel-clip" style="display:none">
+        <div class="row2">
+          <div class="fg">
+            <label>開始時間 <span class="req">*</span></label>
+            <input type="text" id="c-start" placeholder="秒 または HH:MM:SS">
+          </div>
+          <div class="fg">
+            <label>終了時間</label>
+            <input type="text" id="c-end" placeholder="空白で末尾まで">
+          </div>
+        </div>
+        <div class="row2">
+          <div class="fg">
+            <label>上部テキスト</label>
+            <input type="text" id="c-top" placeholder="省略可">
+          </div>
+          <div class="fg">
+            <label>下部テキスト</label>
+            <input type="text" id="c-bottom" placeholder="省略可">
+          </div>
+        </div>
+        <div class="row2">
+          <div class="fg">
+            <label>テキストカラー</label>
+            <select id="c-tcolor">
+              <option value="white" selected>white（白）</option>
+              <option value="yellow">yellow（黄）</option>
+              <option value="red">red（赤）</option>
+              <option value="orange">orange（橙）</option>
+              <option value="black">black（黒）</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>フォントサイズ</label>
+            <input type="number" id="c-fontsize" value="108">
+          </div>
+        </div>
+      </div>
+
+      <button class="run-btn" id="runBtn" disabled onclick="submitJob()">実行する</button>
+    </div>
+  </div>
+
+  <!-- ── Right: Jobs ── -->
+  <div>
+    <div class="jobs-header">
+      <h2>ジョブ一覧</h2>
+      <span class="badge-count" id="jobCount">0</span>
+    </div>
+    <div id="jobsList">
+      <div class="empty">
+        <div class="empty-icon">🎞</div>
+        <div>まだジョブがありません</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /layout -->
+
+<script>
+const LABELS = { pipeline: 'Video Pipeline', short: 'Short Video', clip: 'Clip Video' };
+let currentPipeline = 'pipeline';
+let fileId = null;
+let bgFileId = null;
+let pollTimer = null;
+
+// ── Upload ──────────────────────────────────────
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('over');
+  if (e.dataTransfer.files[0]) doUpload(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) doUpload(fileInput.files[0]); });
+document.getElementById('removeFile').addEventListener('click', () => {
+  fileId = null;
+  document.getElementById('filePill').classList.remove('show');
+  document.getElementById('runBtn').disabled = true;
+  fileInput.value = '';
+});
+
+async function doUpload(file) {
+  dropZone.style.opacity = '.5';
+  const fd = new FormData();
+  fd.append('file', file);
+  try {
+    const r = await fetch('/api/upload', { method: 'POST', body: fd });
+    if (!r.ok) throw new Error(await r.text());
+    const d = await r.json();
+    fileId = d.file_id;
+    document.getElementById('fileName').textContent = file.name;
+    document.getElementById('fileSize').textContent = fmtSize(file.size);
+    document.getElementById('filePill').classList.add('show');
+    document.getElementById('runBtn').disabled = false;
+  } catch(e) { alert('アップロード失敗: ' + e.message); }
+  dropZone.style.opacity = '1';
+}
+
+// BG image upload
+const bgDropZone = document.getElementById('bgDropZone');
+const bgInput = document.getElementById('bgInput');
+bgDropZone.addEventListener('click', () => bgInput.click());
+bgInput.addEventListener('change', async () => {
+  if (!bgInput.files[0]) return;
+  const fd = new FormData();
+  fd.append('file', bgInput.files[0]);
+  try {
+    const r = await fetch('/api/upload', { method: 'POST', body: fd });
+    const d = await r.json();
+    bgFileId = d.file_id;
+    document.getElementById('bgFileName').textContent = bgInput.files[0].name;
+  } catch(e) { alert('背景画像アップロード失敗: ' + e.message); }
+});
+
+// ── Tabs ──────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentPipeline = btn.dataset.p;
+    ['pipeline','short','clip'].forEach(p =>
+      document.getElementById('panel-' + p).style.display = p === currentPipeline ? '' : 'none'
+    );
+  });
+});
+
+function refreshBgOpts() {
+  const t = document.getElementById('s-bgtype').value;
+  document.getElementById('s-blur-row').style.display  = t !== 'color' ? '' : 'none';
+  document.getElementById('s-color-row').style.display = t === 'color' ? '' : 'none';
+  document.getElementById('s-image-row').style.display = t === 'image' ? '' : 'none';
+}
+
+// ── Submit ──────────────────────────────────────
+async function submitJob() {
+  if (!fileId) return;
+  const params = gatherParams();
+  if (params === null) return;
+
+  const body = { pipeline: currentPipeline, file_id: fileId, params };
+  if (currentPipeline === 'short' && bgFileId &&
+      document.getElementById('s-bgtype').value === 'image') {
+    body.bg_file_id = bgFileId;
+  }
+
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true; btn.textContent = '送信中…';
+  try {
+    const r = await fetch('/api/jobs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) { const e = await r.json(); throw new Error(e.detail || r.statusText); }
+    startPoll();
+    loadJobs();
+  } catch(e) { alert('送信失敗: ' + e.message); }
+  btn.disabled = false; btn.textContent = '実行する';
+}
+
+function gatherParams() {
+  const v = id => document.getElementById(id).value;
+  const chk = id => document.getElementById(id).checked;
+
+  if (currentPipeline === 'pipeline') {
+    return {
+      language: v('p-lang'), whisper_model: v('p-whisper'),
+      font_color: v('p-color'),
+      noise_db: parseFloat(v('p-noisedb')),
+      min_silence: parseFloat(v('p-minsilence')),
+      skip_refine: chk('p-skiprefine'),
+      thumbnail: chk('p-thumbnail'),
+    };
+  }
+  if (currentPipeline === 'short') {
+    const bgType = v('s-bgtype');
+    const p = {
+      language: v('s-lang'), whisper_model: v('s-whisper'),
+      font_color: v('s-color'),
+      skip_refine: chk('s-skiprefine'),
+    };
+    if (bgType !== 'color') p.blur_sigma = parseInt(v('s-blursigma'));
+    if (bgType === 'color') p.bg_color = v('s-bgcolor');
+    return p;
+  }
+  if (currentPipeline === 'clip') {
+    const start = v('c-start').trim();
+    if (!start) { alert('開始時間は必須です'); return null; }
+    const p = {
+      start_time: start,
+      text_color: v('c-tcolor'),
+      font_size: parseInt(v('c-fontsize')),
+    };
+    const end = v('c-end').trim(); if (end) p.end_time = end;
+    const top = v('c-top').trim(); if (top) p.top_text = top;
+    const bot = v('c-bottom').trim(); if (bot) p.bottom_text = bot;
+    return p;
+  }
+}
+
+// ── Jobs ──────────────────────────────────────
+function startPoll() {
+  if (pollTimer) return;
+  pollTimer = setInterval(() => {
+    loadJobs().then(jobs => {
+      if (jobs && !jobs.some(j => j.status === 'queued' || j.status === 'running')) {
+        clearInterval(pollTimer); pollTimer = null;
+      }
+    });
+  }, 2500);
+}
+
+async function loadJobs() {
+  try {
+    const r = await fetch('/api/jobs');
+    const jobs = await r.json();
+    renderJobs(jobs);
+    return jobs;
+  } catch(e) { return null; }
+}
+
+function renderJobs(jobs) {
+  document.getElementById('jobCount').textContent = jobs.length;
+  const el = document.getElementById('jobsList');
+  if (!jobs.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">🎞</div><div>まだジョブがありません</div></div>';
+    return;
+  }
+  el.innerHTML = jobs.map(jobCard).join('');
+}
+
+function jobCard(j) {
+  const statusLabel = { queued:'待機中', running:'実行中', done:'完了', failed:'失敗' }[j.status] || j.status;
+  const qInfo = j.status === 'queued' && j.queue_position > 0 ? `（${j.queue_position}番目）` : '';
+  const pct = j.progress;
+  const barCls = j.status === 'done' ? 'done' : j.status === 'failed' ? 'failed' : '';
+
+  let footRight = `<span class="job-pct">${pct}%</span>`;
+  if (j.status === 'done' && j.output_filename) {
+    const url = `/api/jobs/${j.id}/download/${j.output_filename}`;
+    footRight += ` <a class="dl-btn" href="${url}" download>↓ ダウンロード</a>`;
+  }
+
+  const errHtml = j.error
+    ? `<div class="err-box">${esc(j.error.slice(0, 400))}</div>` : '';
+
+  const t = new Date(j.created_at).toLocaleTimeString('ja-JP', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+
+  return `
+<div class="job-card ${j.status}">
+  <div class="job-top">
+    <span class="badge badge-${j.status}">${statusLabel}</span>
+    <span class="job-name">${LABELS[j.pipeline] || j.pipeline}</span>
+    <span class="job-id">${j.id.slice(0,8)}</span>
+    <span class="job-time">${t}</span>
+  </div>
+  <div class="prog-wrap"><div class="prog-fill ${barCls}" style="width:${pct}%"></div></div>
+  <div class="job-foot">
+    <span class="job-lbl">${esc(j.progress_label)}${esc(qInfo)}</span>
+    ${footRight}
+  </div>
+  ${errHtml}
+</div>`;
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function fmtSize(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(1) + ' MB';
+}
+
+// Initial load + auto-poll if any active jobs
+loadJobs().then(jobs => {
+  if (jobs && jobs.some(j => j.status === 'queued' || j.status === 'running')) startPoll();
+});
+</script>
+</body>
+</html>
