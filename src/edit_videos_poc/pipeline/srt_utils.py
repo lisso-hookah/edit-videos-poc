@@ -15,11 +15,30 @@ _ASS_PREAMBLE = "[Script Info]\nScriptType: v4.00+\nWrapStyle: 1\nScaledBorderAn
 _EVENTS_HEADER = "\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
 _MARGINS = "160,160,40"
 
+# English color name → ASS &HAABBGGRR& (AA=00 opaque)
+_COLOR_MAP: dict[str, str] = {
+    "white":   "&H00FFFFFF&",
+    "black":   "&H00000000&",
+    "yellow":  "&H0000FFFF&",
+    "red":     "&H000000FF&",
+    "blue":    "&H00FF0000&",
+    "green":   "&H0000FF00&",
+    "cyan":    "&H00FFFF00&",
+    "magenta": "&H00FF00FF&",
+    "orange":  "&H000080FF&",
+    "pink":    "&H008080FF&",
+}
+
 # text_color → single outline color (no double border)
 _SINGLE_OUTLINE: dict[str, str] = {
     "&H00FFFFFF&": "&H00000000&",  # white text → black outline
     "&H00000000&": "&H00FFFFFF&",  # black text → white outline
 }
+
+
+def color_to_ass(color: str) -> str:
+    """Convert English color name or existing ASS code to ASS format."""
+    return _COLOR_MAP.get(color.lower(), color)
 
 _MAX_CHARS = 18
 
@@ -54,7 +73,11 @@ def segments_to_ass(
     """Compose ASS file.
 
     White/black text → single outline. Other colors → double outline (black inner + white outer).
+    Accepts English color names (yellow, white, red, …) or raw ASS codes.
     """
+    text_color = color_to_ass(text_color)
+    inner_color = color_to_ass(inner_color)
+    outer_color = color_to_ass(outer_color)
     single = _SINGLE_OUTLINE.get(text_color.upper())
     if single:
         style_line = f"Style: Default,{font},{font_size},{text_color},{text_color},{single},&H00000000&,0,0,0,0,100,100,0,0,1,2,0,2,{_MARGINS},0"

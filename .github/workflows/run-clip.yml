@@ -33,7 +33,7 @@ on:
         type: string
       font_size:
         description: "テキストのフォントサイズ"
-        default: "48"
+        default: "108"
         required: false
         type: string
 

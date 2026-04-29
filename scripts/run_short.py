@@ -14,8 +14,10 @@ def main() -> None:
     parser.add_argument("--min-silence", type=float, default=0.5, help="Minimum silence duration (s)")
     parser.add_argument("--skip-refine", action="store_true", help="Skip Gemini refinement step")
     parser.add_argument("--font", default=None, help="Subtitle font name")
-    parser.add_argument("--font-color", default="&H0000FFFF&", help="字幕文字色 ASS形式 (デフォルト: 黄 &H0000FFFF&)")
+    parser.add_argument("--font-color", default="yellow", help="字幕文字色 (yellow / white / red / black など)")
     parser.add_argument("--blur-sigma", type=int, default=40, help="Background blur strength (default: 40)")
+    parser.add_argument("--bg-color", default=None, help="単色背景色 (black / white / など)")
+    parser.add_argument("--bg-image", default=None, type=Path, help="背景に使う静止画パス（ぼかし適用）")
     args = parser.parse_args()
 
     from edit_videos_poc.pipeline.audio import extract_audio
@@ -62,7 +64,8 @@ def main() -> None:
     subbed = burn_subtitles(cut_video, sub_path)
 
     print("[7/7] Converting to vertical (9:16)...")
-    final = make_vertical(subbed, blur_sigma=args.blur_sigma)
+    bg_image = args.bg_image.resolve() if args.bg_image else None
+    final = make_vertical(subbed, blur_sigma=args.blur_sigma, bg_color=args.bg_color, bg_image=bg_image)
 
     print(f"\n[short] Done! Output: {final}")
 

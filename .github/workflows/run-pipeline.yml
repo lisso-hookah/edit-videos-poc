@@ -33,8 +33,8 @@ on:
         required: false
         type: string
       font_color:
-        description: "字幕の文字色 (ASS形式: &H00FFFFFF&=白 / &H0000FFFF&=黄 / &H000000FF&=赤 / &H00000000&=黒)"
-        default: "&H00FFFFFF&"
+        description: "字幕の文字色 (yellow / white / red / black / blue / green / orange など)"
+        default: "yellow"
         required: false
         type: string
       thumbnail:
