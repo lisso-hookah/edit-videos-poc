@@ -1,0 +1,95 @@
+name: Clip Video
+
+on:
+  workflow_dispatch:
+    inputs:
+      video_path:
+        description: "リポジトリ内の動画ファイルパス (例: samples/input.mp4)"
+        required: true
+        type: string
+      start_time:
+        description: "切り抜き開始時間 (秒 または HH:MM:SS)"
+        required: true
+        type: string
+      end_time:
+        description: "切り抜き終了時間 (秒 または HH:MM:SS、未指定で動画末尾まで)"
+        default: ""
+        required: false
+        type: string
+      top_text:
+        description: "上部に表示するテキスト (省略可)"
+        default: ""
+        required: false
+        type: string
+      bottom_text:
+        description: "下部に表示するテキスト (省略可)"
+        default: ""
+        required: false
+        type: string
+      text_color:
+        description: "テキストの色 (white / yellow / red / black など)"
+        default: "white"
+        required: false
+        type: string
+      font_size:
+        description: "テキストのフォントサイズ"
+        default: "48"
+        required: false
+        type: string
+
+jobs:
+  clip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-noto-cjk fontconfig
+
+      - name: Install custom font
+        run: |
+          curl -fL "https://font.sumomo.ne.jp/fontdata-c2157415/k-font.zip" -o /tmp/k-font.zip
+          unzip /tmp/k-font.zip -d /tmp/k-font/
+          sudo mkdir -p /usr/local/share/fonts/k-font
+          find /tmp/k-font -name "*.ttf" -o -name "*.otf" | xargs -I{} sudo cp {} /usr/local/share/fonts/k-font/
+          sudo fc-cache -fv
+          FONT_FILE=$(find /tmp/k-font -name "*.ttf" -o -name "*.otf" | head -1)
+          FONT_NAME=$(fc-query --format="%{family[0]}\n" "$FONT_FILE" | head -1)
+          echo "CLIP_FONT=$FONT_NAME" >> "$GITHUB_ENV"
+
+      - name: Install Python dependencies
+        run: pip install -e .
+
+      - name: Run clip
+        env:
+          WORK_DIR: ./output
+        run: |
+          ARGS="${{ inputs.video_path }} --start ${{ inputs.start_time }}"
+          ARGS="$ARGS --font \"$CLIP_FONT\""
+          ARGS="$ARGS --font-size ${{ inputs.font_size }}"
+          ARGS="$ARGS --text-color ${{ inputs.text_color }}"
+          if [ -n "${{ inputs.end_time }}" ]; then
+            ARGS="$ARGS --end ${{ inputs.end_time }}"
+          fi
+          if [ -n "${{ inputs.top_text }}" ]; then
+            ARGS="$ARGS --top-text \"${{ inputs.top_text }}\""
+          fi
+          if [ -n "${{ inputs.bottom_text }}" ]; then
+            ARGS="$ARGS --bottom-text \"${{ inputs.bottom_text }}\""
+          fi
+          eval python scripts/run_clip.py $ARGS
+
+      - name: Upload output
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: clip-output
+          path: output/clip/
+          retention-days: 7
