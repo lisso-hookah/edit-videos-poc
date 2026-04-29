@@ -11,8 +11,12 @@ from .silence import SilentRange
 from .transcribe import Segment, Word
 
 _STYLE_FMT = "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding"
-_ASS_PREAMBLE = "[Script Info]\nScriptType: v4.00+\nWrapStyle: 0\nScaledBorderAndShadow: yes\n\n[V4+ Styles]\n"
+# PlayResX/Y=1280x720 を基準にして MarginL/R=80(~6%)で折り返し幅を確定させる。
+# ScaledBorderAndShadow: yes により実際の解像度へ比例スケールされる。
+_ASS_PREAMBLE = "[Script Info]\nScriptType: v4.00+\nWrapStyle: 0\nScaledBorderAndShadow: yes\nPlayResX: 1280\nPlayResY: 720\n\n[V4+ Styles]\n"
 _EVENTS_HEADER = "\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
+# MarginL=80, MarginR=80, MarginV=40 (Alignment=2 はスタイル行に直書き)
+_MARGINS = "80,80,40"
 
 # text_color → single outline color (no double border)
 _SINGLE_OUTLINE: dict[str, str] = {
@@ -44,13 +48,13 @@ def segments_to_ass(
     """
     single = _SINGLE_OUTLINE.get(text_color.upper())
     if single:
-        style_line = f"Style: Default,{font},{font_size},{text_color},{text_color},{single},&H00000000&,0,0,0,0,100,100,0,0,1,2,0,2,10,10,30,0"
+        style_line = f"Style: Default,{font},{font_size},{text_color},{text_color},{single},&H00000000&,0,0,0,0,100,100,0,0,1,2,0,2,{_MARGINS},0"
         header = _ASS_PREAMBLE + _STYLE_FMT + "\n" + style_line + _EVENTS_HEADER
         def make_events(start: str, end: str, text: str) -> list[str]:
             return [f"Dialogue: 0,{start},{end},Default,,0,0,0,,{text}"]
     else:
-        outer_style = f"Style: Outer,{font},{font_size},{outer_color},{outer_color},{outer_color},&H00000000&,0,0,0,0,100,100,0,0,1,4,0,2,10,10,30,0"
-        inner_style = f"Style: Inner,{font},{font_size},{text_color},{text_color},{inner_color},&H00000000&,0,0,0,0,100,100,0,0,1,2,0,2,10,10,30,0"
+        outer_style = f"Style: Outer,{font},{font_size},{outer_color},{outer_color},{outer_color},&H00000000&,0,0,0,0,100,100,0,0,1,4,0,2,{_MARGINS},0"
+        inner_style = f"Style: Inner,{font},{font_size},{text_color},{text_color},{inner_color},&H00000000&,0,0,0,0,100,100,0,0,1,2,0,2,{_MARGINS},0"
         header = _ASS_PREAMBLE + _STYLE_FMT + "\n" + outer_style + "\n" + inner_style + _EVENTS_HEADER
         def make_events(start: str, end: str, text: str) -> list[str]:
             return [
