@@ -1,36 +1,45 @@
 """Gemini-based filler removal and summarization over transcript segments."""
 from __future__ import annotations
 
+import re
 from functools import cache
 
 from .. import config
 from .transcribe import Segment
 
-_FILLER_PROMPT = """\
-以下は動画の文字起こしです。フィラー語（えーと、あの、まあ、など）を除去し、
-意味を変えずに自然な日本語にしてください。タイムコードや改行は触らず、
-セリフテキストだけを返してください。
+_BATCH_FILLER_PROMPT = """\
+以下は動画の文字起こしです。各行の [番号] を保ったまま、フィラー語（えーと、あの、まあ、など）を除去し、
+意味を変えずに自然な日本語にしてください。[番号] と本文だけを返し、それ以外は出力しないでください。
 
-入力:
 {text}
-
-出力:
 """
 
 _SUMMARY_PROMPT = "以下の文字起こしを 3〜5 行で要約してください。\n\n{text}"
 
+_LINE_RE = re.compile(r"^\[(\d+)\]\s*(.*)")
+
 
 def refine_segments(segments: list[Segment]) -> list[Segment]:
-    """Remove filler words from each segment via Gemini."""
-    client = _client()
-    refined: list[Segment] = []
-    for seg in segments:
-        resp = client.models.generate_content(
-            model=config.GEMINI_MODEL,
-            contents=_FILLER_PROMPT.format(text=seg.text),
-        )
-        refined.append(Segment(seg.start, seg.end, resp.text.strip(), seg.words))
-    return refined
+    """Remove filler words from all segments in a single Gemini call."""
+    if not segments:
+        return segments
+
+    numbered = "\n".join(f"[{i}] {seg.text}" for i, seg in enumerate(segments))
+    resp = _client().models.generate_content(
+        model=config.GEMINI_MODEL,
+        contents=_BATCH_FILLER_PROMPT.format(text=numbered),
+    )
+
+    refined_texts: dict[int, str] = {}
+    for line in resp.text.splitlines():
+        m = _LINE_RE.match(line.strip())
+        if m:
+            refined_texts[int(m.group(1))] = m.group(2).strip()
+
+    return [
+        Segment(seg.start, seg.end, refined_texts.get(i, seg.text), seg.words)
+        for i, seg in enumerate(segments)
+    ]
 
 
 def summarize(segments: list[Segment]) -> str:
