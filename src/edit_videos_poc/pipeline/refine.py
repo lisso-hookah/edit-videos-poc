@@ -1,6 +1,8 @@
 """Gemini-based filler removal and summarization over transcript segments."""
 from __future__ import annotations
 
+from functools import cache
+
 from .. import config
 from .transcribe import Segment
 
@@ -41,7 +43,9 @@ def summarize(segments: list[Segment]) -> str:
     return resp.text.strip()
 
 
+@cache
 def _client():
+    """Cached singleton: re-creating genai.Client per call closes its httpx transport via GC."""
     from google import genai  # heavy: lazy import
 
     if not config.GEMINI_API_KEY:
