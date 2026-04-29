@@ -36,7 +36,7 @@ def _td_to_ass(td: timedelta) -> str:
 def segments_to_ass(
     segments: list[Segment],
     font: str = "Noto Sans CJK JP",
-    font_size: int = 24,
+    font_size: int = 36,
     text_color: str = "&H0000FFFF&",
     inner_color: str = "&H00000000&",
     outer_color: str = "&H00FFFFFF&",
