@@ -15,12 +15,13 @@ def main() -> None:
     parser.add_argument("--skip-refine", action="store_true", help="Skip Gemini refinement step")
     parser.add_argument("--font", default=None, help="Subtitle font name")
     parser.add_argument("--font-color", default="&H00FFFFFF&", help="Subtitle color in ASS format (例: &H00FFFFFF& = white, &H0000FFFF& = yellow)")
+    parser.add_argument("--thumbnail", action="store_true", help="Generate thumbnail image via gpt-image-2")
     args = parser.parse_args()
 
     from edit_videos_poc.pipeline.audio import extract_audio
     from edit_videos_poc.pipeline.silence import detect_silence
     from edit_videos_poc.pipeline.transcribe import transcribe
-    from edit_videos_poc.pipeline.refine import refine_segments
+    from edit_videos_poc.pipeline.refine import refine_segments, summarize
     from edit_videos_poc.pipeline.srt_utils import segments_to_srt, shift_for_cuts
     from edit_videos_poc.pipeline.render import cut_silence, burn_subtitles
 
@@ -59,6 +60,13 @@ def main() -> None:
     if args.font:
         burn_kwargs["font"] = args.font
     final = burn_subtitles(cut_video, srt_path, **burn_kwargs)
+
+    if args.thumbnail:
+        print("[7/7] Generating thumbnail...")
+        from edit_videos_poc.pipeline.thumbnail import generate_thumbnail
+        summary = summarize(refined)
+        thumb = generate_thumbnail(summary)
+        print(f"       Thumbnail: {thumb}")
 
     print(f"\n[pipeline] Done! Output: {final}")
 

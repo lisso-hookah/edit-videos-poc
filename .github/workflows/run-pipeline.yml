@@ -37,6 +37,11 @@ on:
         default: "&H00FFFFFF&"
         required: false
         type: string
+      thumbnail:
+        description: "gpt-image-2 でサムネイル画像を生成する (OPENAI_API_KEY が必要)"
+        default: false
+        required: false
+        type: boolean
 
 jobs:
   process:
@@ -72,6 +77,7 @@ jobs:
       - name: Run pipeline
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           WHISPER_MODEL: ${{ inputs.whisper_model }}
           WORK_DIR: ./output
         run: |
@@ -82,6 +88,9 @@ jobs:
           ARGS="$ARGS --font-color \"${{ inputs.font_color }}\""
           if [ "${{ inputs.skip_refine }}" = "true" ]; then
             ARGS="$ARGS --skip-refine"
+          fi
+          if [ "${{ inputs.thumbnail }}" = "true" ]; then
+            ARGS="$ARGS --thumbnail"
           fi
           eval python scripts/run_pipeline.py $ARGS
 
