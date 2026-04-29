@@ -13,10 +13,10 @@ from .transcribe import Segment, Word
 _STYLE_FMT = "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding"
 # PlayResX/Y=1280x720 を基準にして MarginL/R=80(~6%)で折り返し幅を確定させる。
 # ScaledBorderAndShadow: yes により実際の解像度へ比例スケールされる。
-_ASS_PREAMBLE = "[Script Info]\nScriptType: v4.00+\nWrapStyle: 0\nScaledBorderAndShadow: yes\nPlayResX: 1280\nPlayResY: 720\n\n[V4+ Styles]\n"
+_ASS_PREAMBLE = "[Script Info]\nScriptType: v4.00+\nWrapStyle: 1\nScaledBorderAndShadow: yes\nPlayResX: 1280\nPlayResY: 720\n\n[V4+ Styles]\n"
 _EVENTS_HEADER = "\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
-# MarginL=80, MarginR=80, MarginV=40 (Alignment=2 はスタイル行に直書き)
-_MARGINS = "80,80,40"
+# MarginL=160, MarginR=160 (~12.5% of 1280), MarginV=40
+_MARGINS = "160,160,40"
 
 # text_color → single outline color (no double border)
 _SINGLE_OUTLINE: dict[str, str] = {
