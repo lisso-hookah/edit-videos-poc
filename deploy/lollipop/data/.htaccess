@@ -1,0 +1,2 @@
+# data/ 以下への直接 HTTP アクセスを拒否
+Require all denied
