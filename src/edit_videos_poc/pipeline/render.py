@@ -31,7 +31,7 @@ def burn_subtitles(
     video_path: Path,
     sub_path: Path,
     font: str = "Noto Sans CJK JP",
-    font_size: int = 24,
+    font_size: int = 36,
     font_color: str = "&H00FFFFFF&",
     out_name: str | None = None,
 ) -> Path:
