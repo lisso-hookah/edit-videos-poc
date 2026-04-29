@@ -32,11 +32,12 @@ def burn_subtitles(
     srt_path: Path,
     font: str = "Noto Sans CJK JP",
     font_size: int = 24,
+    font_color: str = "&H00FFFFFF&",
     out_name: str | None = None,
 ) -> Path:
     """Burn SRT into video as hardsub via libass styling."""
     out_path = config.step_dir("rendered") / (out_name or f"{video_path.stem}_subbed.mp4")
-    style = f"FontName={font},FontSize={font_size},Outline=1,Shadow=0"
+    style = f"FontName={font},FontSize={font_size},PrimaryColour={font_color},Outline=1,Shadow=0"
     cmd = [
         "ffmpeg", "-y", "-i", str(video_path),
         "-vf", f"subtitles={srt_path}:force_style='{style}'",

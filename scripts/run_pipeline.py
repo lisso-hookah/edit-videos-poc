@@ -13,6 +13,8 @@ def main() -> None:
     parser.add_argument("--noise-db", type=float, default=-30.0, help="Silence threshold in dB")
     parser.add_argument("--min-silence", type=float, default=0.5, help="Minimum silence duration (s)")
     parser.add_argument("--skip-refine", action="store_true", help="Skip Gemini refinement step")
+    parser.add_argument("--font", default=None, help="Subtitle font name")
+    parser.add_argument("--font-color", default="&H00FFFFFF&", help="Subtitle color in ASS format (例: &H00FFFFFF& = white, &H0000FFFF& = yellow)")
     args = parser.parse_args()
 
     from edit_videos_poc.pipeline.audio import extract_audio
@@ -53,7 +55,10 @@ def main() -> None:
 
     print("[6/6] Rendering...")
     cut_video = cut_silence(video, cuts)
-    final = burn_subtitles(cut_video, srt_path)
+    burn_kwargs: dict = {"font_color": args.font_color}
+    if args.font:
+        burn_kwargs["font"] = args.font
+    final = burn_subtitles(cut_video, srt_path, **burn_kwargs)
 
     print(f"\n[pipeline] Done! Output: {final}")
 
