@@ -1,0 +1,88 @@
+name: Run Short Video Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      video_path:
+        description: "リポジトリ内の動画ファイルパス (例: samples/input.mp4)"
+        required: true
+        type: string
+      language:
+        description: "文字起こし言語 (ja / en など)"
+        default: "ja"
+        required: false
+        type: string
+      whisper_model:
+        description: "Whisper モデル (tiny / base / small / medium / large-v3)"
+        default: "medium"
+        required: false
+        type: string
+      skip_refine:
+        description: "Gemini によるフィラー除去をスキップする"
+        default: false
+        required: false
+        type: boolean
+      font_color:
+        description: "字幕文字色 (ASS形式: &H0000FFFF&=黄 / &H00FFFFFF&=白 / &H000000FF&=赤)"
+        default: "&H0000FFFF&"
+        required: false
+        type: string
+      blur_sigma:
+        description: "背景ぼかし強度 (デフォルト: 40)"
+        default: "40"
+        required: false
+        type: string
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-noto-cjk fontconfig
+
+      - name: Install custom font
+        run: |
+          curl -fL "https://font.sumomo.ne.jp/fontdata-c2157415/k-font.zip" -o /tmp/k-font.zip
+          unzip /tmp/k-font.zip -d /tmp/k-font/
+          sudo mkdir -p /usr/local/share/fonts/k-font
+          find /tmp/k-font -name "*.ttf" -o -name "*.otf" | xargs -I{} sudo cp {} /usr/local/share/fonts/k-font/
+          sudo fc-cache -fv
+          FONT_FILE=$(find /tmp/k-font -name "*.ttf" -o -name "*.otf" | head -1)
+          FONT_NAME=$(fc-query --format="%{family[0]}\n" "$FONT_FILE" | head -1)
+          echo "SUBTITLE_FONT=$FONT_NAME" >> "$GITHUB_ENV"
+          echo "Installed font: $FONT_NAME"
+
+      - name: Install Python dependencies
+        run: pip install -e .
+
+      - name: Run short pipeline
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          WHISPER_MODEL: ${{ inputs.whisper_model }}
+          WORK_DIR: ./output
+        run: |
+          ARGS="${{ inputs.video_path }} --language ${{ inputs.language }}"
+          ARGS="$ARGS --font \"$SUBTITLE_FONT\""
+          ARGS="$ARGS --font-color \"${{ inputs.font_color }}\""
+          ARGS="$ARGS --blur-sigma ${{ inputs.blur_sigma }}"
+          if [ "${{ inputs.skip_refine }}" = "true" ]; then
+            ARGS="$ARGS --skip-refine"
+          fi
+          eval python scripts/run_short.py $ARGS
+
+      - name: Upload output
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: short-output
+          path: output/
+          retention-days: 7

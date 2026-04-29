@@ -11,11 +11,8 @@ from .silence import SilentRange
 from .transcribe import Segment, Word
 
 _STYLE_FMT = "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding"
-# PlayResX/Y=1280x720 を基準にして MarginL/R=80(~6%)で折り返し幅を確定させる。
-# ScaledBorderAndShadow: yes により実際の解像度へ比例スケールされる。
 _ASS_PREAMBLE = "[Script Info]\nScriptType: v4.00+\nWrapStyle: 1\nScaledBorderAndShadow: yes\nPlayResX: 1280\nPlayResY: 720\n\n[V4+ Styles]\n"
 _EVENTS_HEADER = "\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
-# MarginL=160, MarginR=160 (~12.5% of 1280), MarginV=40
 _MARGINS = "160,160,40"
 
 # text_color → single outline color (no double border)
@@ -23,6 +20,18 @@ _SINGLE_OUTLINE: dict[str, str] = {
     "&H00FFFFFF&": "&H00000000&",  # white text → black outline
     "&H00000000&": "&H00FFFFFF&",  # black text → white outline
 }
+
+_MAX_CHARS = 18
+
+
+def _wrap_text(text: str) -> str:
+    """Hard-wrap text at _MAX_CHARS characters per line."""
+    lines: list[str] = []
+    while len(text) > _MAX_CHARS:
+        lines.append(text[:_MAX_CHARS])
+        text = text[_MAX_CHARS:]
+    lines.append(text)
+    return "\\N".join(lines)
 
 
 def _td_to_ass(td: timedelta) -> str:
@@ -36,7 +45,7 @@ def _td_to_ass(td: timedelta) -> str:
 def segments_to_ass(
     segments: list[Segment],
     font: str = "Noto Sans CJK JP",
-    font_size: int = 36,
+    font_size: int = 48,
     text_color: str = "&H0000FFFF&",
     inner_color: str = "&H00000000&",
     outer_color: str = "&H00FFFFFF&",
@@ -66,7 +75,7 @@ def segments_to_ass(
     for seg in segments:
         start = _td_to_ass(timedelta(seconds=seg.start))
         end = _td_to_ass(timedelta(seconds=seg.end))
-        text = seg.text.strip().replace("\n", "\\N")
+        text = _wrap_text(seg.text.strip())
         events.extend(make_events(start, end, text))
     out_path = config.step_dir("srt") / out_name
     out_path.write_text(header + "\n".join(events) + "\n", encoding="utf-8")
