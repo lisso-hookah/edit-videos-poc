@@ -23,12 +23,31 @@ on:
         required: false
         type: boolean
       font_color:
-        description: "字幕文字色 (ASS形式: &H0000FFFF&=黄 / &H00FFFFFF&=白 / &H000000FF&=赤)"
-        default: "&H0000FFFF&"
+        description: "字幕文字色 (yellow / white / red / black / blue など)"
+        default: "yellow"
+        required: false
+        type: string
+      background_type:
+        description: "背景の種類: blur=動画ぼかし / color=単色 / image=指定画像ぼかし"
+        default: "blur"
+        required: false
+        type: choice
+        options:
+          - blur
+          - color
+          - image
+      background_color:
+        description: "単色背景の色 (background_type=color のとき使用: black / white / など)"
+        default: "black"
+        required: false
+        type: string
+      background_image:
+        description: "背景画像パス (background_type=image のとき使用: 例 samples/bg.jpg)"
+        default: ""
         required: false
         type: string
       blur_sigma:
-        description: "背景ぼかし強度 (デフォルト: 40)"
+        description: "ぼかし強度 (blur / image のとき使用, デフォルト: 40)"
         default: "40"
         required: false
         type: string
@@ -72,10 +91,15 @@ jobs:
         run: |
           ARGS="${{ inputs.video_path }} --language ${{ inputs.language }}"
           ARGS="$ARGS --font \"$SUBTITLE_FONT\""
-          ARGS="$ARGS --font-color \"${{ inputs.font_color }}\""
+          ARGS="$ARGS --font-color ${{ inputs.font_color }}"
           ARGS="$ARGS --blur-sigma ${{ inputs.blur_sigma }}"
           if [ "${{ inputs.skip_refine }}" = "true" ]; then
             ARGS="$ARGS --skip-refine"
+          fi
+          if [ "${{ inputs.background_type }}" = "color" ]; then
+            ARGS="$ARGS --bg-color ${{ inputs.background_color }}"
+          elif [ "${{ inputs.background_type }}" = "image" ] && [ -n "${{ inputs.background_image }}" ]; then
+            ARGS="$ARGS --bg-image ${{ inputs.background_image }}"
           fi
           eval python scripts/run_short.py $ARGS
 

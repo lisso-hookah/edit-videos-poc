@@ -15,7 +15,7 @@ def clip_video(
     top_text: str | None = None,
     bottom_text: str | None = None,
     font: str = "Noto Sans CJK JP",
-    font_size: int = 48,
+    font_size: int = 108,
     text_color: str = "white",
     out_name: str | None = None,
 ) -> Path:
@@ -30,9 +30,9 @@ def clip_video(
 
     filters: list[str] = []
     if top_text:
-        filters.append(_drawtext(top_text, font, font_size, text_color, "y=60"))
+        filters.append(_drawtext(top_text, font, font_size, text_color, "y=(h-text_h)/2-50"))
     if bottom_text:
-        filters.append(_drawtext(bottom_text, font, font_size, text_color, "y=h-text_h-60"))
+        filters.append(_drawtext(bottom_text, font, font_size, text_color, "y=(h+text_h)/2+50"))
 
     if filters:
         cmd += ["-vf", ",".join(filters), "-c:a", "copy"]
