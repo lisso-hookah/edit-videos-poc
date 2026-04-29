@@ -29,18 +29,23 @@ def cut_silence(video_path: Path, cuts: list[SilentRange], out_name: str | None 
 
 def burn_subtitles(
     video_path: Path,
-    srt_path: Path,
+    sub_path: Path,
     font: str = "Noto Sans CJK JP",
     font_size: int = 24,
     font_color: str = "&H00FFFFFF&",
     out_name: str | None = None,
 ) -> Path:
-    """Burn SRT into video as hardsub via libass styling."""
+    """Burn subtitles (SRT or ASS) into video as hardsub."""
     out_path = config.step_dir("rendered") / (out_name or f"{video_path.stem}_subbed.mp4")
-    style = f"FontName={font},FontSize={font_size},PrimaryColour={font_color},Outline=1,Shadow=0"
+    if sub_path.suffix.lower() == ".ass":
+        # ASS carries its own styling; force_style not needed
+        vf = f"subtitles={sub_path}"
+    else:
+        style = f"FontName={font},FontSize={font_size},PrimaryColour={font_color},Outline=1,Shadow=0"
+        vf = f"subtitles={sub_path}:force_style='{style}'"
     cmd = [
         "ffmpeg", "-y", "-i", str(video_path),
-        "-vf", f"subtitles={srt_path}:force_style='{style}'",
+        "-vf", vf,
         "-c:a", "copy",
         str(out_path),
     ]
