@@ -14,7 +14,7 @@ def main() -> None:
     parser.add_argument("--min-silence", type=float, default=0.5, help="Minimum silence duration (s)")
     parser.add_argument("--skip-refine", action="store_true", help="Skip Gemini refinement step")
     parser.add_argument("--font", default=None, help="Subtitle font name")
-    parser.add_argument("--font-color", default="&H0000FFFF&", help="字幕文字色 ASS形式 (デフォルト: 黄 &H0000FFFF&)")
+    parser.add_argument("--font-color", default="yellow", help="字幕文字色 (yellow / white / red / black など)")
     parser.add_argument("--thumbnail", action="store_true", help="Generate thumbnail image via gpt-image-2")
     args = parser.parse_args()
 
