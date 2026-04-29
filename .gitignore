@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+
+# Env / secrets
+.env
+
+# Pipeline intermediates / outputs
+output/
+models/
+
+# Media samples (commit only via Git LFS if needed)
+*.mp4
+*.mov
+*.mkv
+*.wav
+*.mp3
+*.m4a
+
+# IDE / Notebook
+.vscode/
+.idea/
+.ipynb_checkpoints/
