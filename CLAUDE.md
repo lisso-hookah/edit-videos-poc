@@ -44,5 +44,7 @@
 - 重い import（`torch` / `faster_whisper` / `google.genai`）は **関数内で lazy import**
 
 ### 依存管理
-- `uv pip install -e .` でローカル開発、Colab では `!pip install -e .`
-- 新規依存は `pyproject.toml` の `dependencies` に追記
+- **`uv` で統一**。新規追加は `uv add <pkg>` を使う（自動で `pyproject.toml` と `uv.lock` を更新 → 必ずコミット）
+- pip 直接インストールは禁止（lock がズレる）
+- ローカル開発: `uv sync`（`.venv` が自動生成される）
+- Colab: notebook 1 セル目で `uv export --frozen --no-dev --no-emit-project --no-hashes -o /tmp/requirements.lock` → `uv pip install --system -r /tmp/requirements.lock` の順。プロジェクト本体は editable install せず `sys.path.insert(0, 'src')` で読ませる（kernel が `.pth` を読み直さない問題回避）
