@@ -20,10 +20,13 @@ _SUMMARY_PROMPT = "以下の文字起こしを 3〜5 行で要約してくださ
 
 def refine_segments(segments: list[Segment]) -> list[Segment]:
     """Remove filler words from each segment via Gemini."""
-    model = _model()
+    client = _client()
     refined: list[Segment] = []
     for seg in segments:
-        resp = model.generate_content(_FILLER_PROMPT.format(text=seg.text))
+        resp = client.models.generate_content(
+            model=config.GEMINI_MODEL,
+            contents=_FILLER_PROMPT.format(text=seg.text),
+        )
         refined.append(Segment(seg.start, seg.end, resp.text.strip(), seg.words))
     return refined
 
@@ -31,14 +34,16 @@ def refine_segments(segments: list[Segment]) -> list[Segment]:
 def summarize(segments: list[Segment]) -> str:
     """Generate a short summary of the entire transcript."""
     full_text = "\n".join(seg.text for seg in segments)
-    resp = _model().generate_content(_SUMMARY_PROMPT.format(text=full_text))
+    resp = _client().models.generate_content(
+        model=config.GEMINI_MODEL,
+        contents=_SUMMARY_PROMPT.format(text=full_text),
+    )
     return resp.text.strip()
 
 
-def _model():
-    import google.generativeai as genai  # heavy: lazy import
+def _client():
+    from google import genai  # heavy: lazy import
 
     if not config.GEMINI_API_KEY:
         raise RuntimeError("GEMINI_API_KEY not set; configure .env first")
-    genai.configure(api_key=config.GEMINI_API_KEY)
-    return genai.GenerativeModel(config.GEMINI_MODEL)
+    return genai.Client(api_key=config.GEMINI_API_KEY)

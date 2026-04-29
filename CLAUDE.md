@@ -34,13 +34,14 @@
 - GPU で `float16`、CPU で `int8` を `transcribe._select_runtime()` が自動選択
 
 ### Gemini
+- 新 SDK `google-genai`（`from google import genai`）を使う。旧 `google-generativeai` は使わない
 - per-segment 呼び出しはコストがかかる。本番化時はバッチプロンプトに切り替え検討
-- モデル名は `GEMINI_MODEL` env で上書き可能
+- モデル名は `GEMINI_MODEL` env で上書き可能（既定: `gemini-3-flash-preview`）
 
 ### コーディング
 - public 関数のみ 1 行 docstring。WHY が非自明なときだけインラインコメント
 - `from __future__ import annotations` を全モジュール先頭に
-- 重い import（torch / faster_whisper / google.generativeai）は **関数内で lazy import**
+- 重い import（`torch` / `faster_whisper` / `google.genai`）は **関数内で lazy import**
 
 ### 依存管理
 - `uv pip install -e .` でローカル開発、Colab では `!pip install -e .`

@@ -6,7 +6,7 @@ requires-python = ">=3.11"
 dependencies = [
     "ffmpeg-python>=0.2.0",
     "faster-whisper>=1.0.0",
-    "google-generativeai>=0.8.0",
+    "google-genai>=0.8.0",
     "srt>=3.5.0",
     "python-dotenv>=1.0.0",
 ]
