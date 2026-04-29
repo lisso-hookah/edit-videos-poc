@@ -21,6 +21,8 @@ models/
 *.wav
 *.mp3
 *.m4a
+# Exception: smoke-test fixtures committed under samples/
+!samples/*.mp4
 
 # IDE / Notebook
 .vscode/
