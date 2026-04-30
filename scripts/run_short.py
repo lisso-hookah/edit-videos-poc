@@ -15,6 +15,12 @@ def main() -> None:
     parser.add_argument("--skip-refine", action="store_true", help="Skip Gemini refinement step")
     parser.add_argument("--font", default=None, help="Subtitle font name")
     parser.add_argument("--font-color", default="yellow", help="字幕文字色 (yellow / white / red / black など)")
+    parser.add_argument("--font-size", type=int, default=48, help="字幕フォントサイズ")
+    parser.add_argument("--subtitle-position", type=int, default=2, help="ASS alignment 1-9 (2=下部中央)")
+    parser.add_argument("--bold", action="store_true", help="字幕太字")
+    parser.add_argument("--italic", action="store_true", help="字幕斜体")
+    parser.add_argument("--outline-size", type=int, default=2, help="アウトライン太さ 0-8")
+    parser.add_argument("--box-background", action="store_true", help="字幕ボックス背景 (Netflix 風)")
     parser.add_argument("--blur-sigma", type=int, default=40, help="Background blur strength (default: 40)")
     parser.add_argument("--bg-color", default=None, help="単色背景色 (black / white / など)")
     parser.add_argument("--bg-image", default=None, type=Path, help="背景に使う静止画パス（ぼかし適用）")
@@ -54,7 +60,15 @@ def main() -> None:
 
     print("[5/7] Generating ASS subtitles...")
     shifted = shift_for_cuts(refined, cuts)
-    ass_kwargs: dict = {"text_color": args.font_color}
+    ass_kwargs: dict = {
+        "text_color": args.font_color,
+        "font_size": args.font_size,
+        "alignment": args.subtitle_position,
+        "bold": args.bold,
+        "italic": args.italic,
+        "outline_size": args.outline_size,
+        "box_background": args.box_background,
+    }
     if args.font:
         ass_kwargs["font"] = args.font
     sub_path = segments_to_ass(shifted, **ass_kwargs)
