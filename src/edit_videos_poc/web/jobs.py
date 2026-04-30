@@ -79,7 +79,16 @@ def _build_command(job: Job) -> tuple[str, list[str], dict[str, str]]:
             "--noise-db", str(p.get("noise_db", "-30")),
             "--min-silence", str(p.get("min_silence", "0.5")),
             "--font-color", str(p.get("font_color", "yellow")),
+            "--font-size", str(p.get("font_size", 48)),
+            "--subtitle-position", str(p.get("subtitle_position", 2)),
+            "--outline-size", str(p.get("outline_size", 2)),
         ]
+        if p.get("bold"):
+            args.append("--bold")
+        if p.get("italic"):
+            args.append("--italic")
+        if p.get("box_background"):
+            args.append("--box-background")
         if p.get("skip_refine"):
             args.append("--skip-refine")
         if p.get("thumbnail"):
@@ -91,8 +100,17 @@ def _build_command(job: Job) -> tuple[str, list[str], dict[str, str]]:
             video,
             "--language", str(p.get("language", "ja")),
             "--font-color", str(p.get("font_color", "yellow")),
+            "--font-size", str(p.get("font_size", 48)),
+            "--subtitle-position", str(p.get("subtitle_position", 2)),
+            "--outline-size", str(p.get("outline_size", 2)),
             "--blur-sigma", str(p.get("blur_sigma", "40")),
         ]
+        if p.get("bold"):
+            args.append("--bold")
+        if p.get("italic"):
+            args.append("--italic")
+        if p.get("box_background"):
+            args.append("--box-background")
         if p.get("skip_refine"):
             args.append("--skip-refine")
         if p.get("bg_color"):

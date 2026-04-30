@@ -89,6 +89,51 @@ header h1 { font-size: 17px; font-weight: 600; color: #fff; }
 .notice { background: rgba(88,166,255,.08); border: 1px solid rgba(88,166,255,.2); border-radius: 6px; padding: 10px 14px; font-size: 12px; color: var(--accent); margin-bottom: 14px; }
 .empty { text-align: center; color: var(--muted); padding: 48px 0; }
 .empty .empty-icon { font-size: 36px; margin-bottom: 12px; }
+
+/* ── 字幕スタイルプリセット ── */
+.section-label { display: block; font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+.divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+.preset-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+.preset-btn { padding: 8px 4px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface2); cursor: pointer; text-align: center; font-size: 11px; color: var(--muted); transition: border-color .15s, background .15s; user-select: none; }
+.preset-btn:hover { border-color: var(--accent); color: var(--text); }
+.preset-btn.active { border-color: var(--accent); background: rgba(88,166,255,.12); color: var(--accent); }
+.ps-prev { height: 26px; border-radius: 4px; display: flex; align-items: center; justify-content: center; margin-bottom: 5px; font-weight: 700; font-size: 11px; }
+.ps-prev.sty-youtube { color: yellow; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; }
+.ps-prev.sty-netflix { background: rgba(0,0,0,.75); color: white; padding: 0 6px; }
+.ps-prev.sty-tiktok  { color: white; font-weight: 900; text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000; }
+.ps-prev.sty-cinema  { color: white; font-style: italic; font-weight: normal; text-shadow: -1px -1px 0 #000, 1px 1px 0 #000; }
+.ps-prev.sty-karaoke { background: rgba(0,0,30,.5); color: cyan; text-shadow: -1px -1px 0 navy, 1px 1px 0 navy; padding: 0 4px; }
+.ps-prev.sty-simple  { color: white; font-weight: normal; text-shadow: -1px -1px 0 rgba(0,0,0,.8), 1px 1px 0 rgba(0,0,0,.8); }
+
+/* ── 字幕位置ピッカー ── */
+.pos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 14px; }
+.pos-btn { padding: 7px 4px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface2); cursor: pointer; text-align: center; font-size: 10px; color: var(--muted); transition: border-color .15s; user-select: none; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.pos-btn:hover { border-color: var(--accent); color: var(--text); }
+.pos-btn.active { border-color: var(--accent); background: rgba(88,166,255,.12); color: var(--accent); }
+.pos-icon { font-size: 13px; }
+
+/* ── プレビューパネル ── */
+.preview-frame { position: relative; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); border-radius: 8px; overflow: hidden; }
+.preview-frame.r169 { padding-top: 56.25%; }
+.preview-frame.r916 { width: 120px; height: 213px; margin: 0 auto; }
+.preview-bars { position: absolute; top: 8px; left: 10px; right: 10px; display: flex; flex-direction: column; gap: 3px; opacity: .4; }
+.preview-bar { height: 3px; background: rgba(255,255,255,.5); border-radius: 2px; }
+.preview-bar:nth-child(1){ width:55%; } .preview-bar:nth-child(2){ width:75%; } .preview-bar:nth-child(3){ width:45%; }
+.preview-inner { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center; padding: 8px; }
+.preview-inner.pi-top  { align-items: flex-start; }
+.preview-inner.pi-mid  { align-items: center; }
+.preview-inner.pi-bl   { align-items: flex-end; justify-content: flex-start; }
+.preview-inner.pi-br   { align-items: flex-end; justify-content: flex-end; }
+.preview-inner.pi-tl   { align-items: flex-start; justify-content: flex-start; }
+.preview-inner.pi-tr   { align-items: flex-start; justify-content: flex-end; }
+.preview-sub { font-size: 12px; font-weight: bold; text-align: center; padding: 2px 6px; max-width: 90%; line-height: 1.4; border-radius: 3px; }
+.preview-sub.pss-youtube { color: yellow; text-shadow: -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000; }
+.preview-sub.pss-netflix { color: white; background: rgba(0,0,0,.75); font-size: 11px; }
+.preview-sub.pss-tiktok  { color: white; font-weight: 900; font-size: 14px; text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000; }
+.preview-sub.pss-cinema  { color: white; font-style: italic; font-weight: normal; text-shadow: -1px -1px 0 #000, 1px 1px 0 #000; }
+.preview-sub.pss-karaoke { color: cyan; background: rgba(0,0,30,.5); text-shadow: -1px -1px 0 navy, 1px 1px 0 navy; }
+.preview-sub.pss-simple  { color: white; font-weight: normal; text-shadow: -1px -1px 0 rgba(0,0,0,.8), 1px 1px 0 rgba(0,0,0,.8); }
+.preview-note { font-size: 11px; color: var(--muted); margin-top: 8px; text-align: center; }
 </style>
 </head>
 <body>
@@ -134,9 +179,31 @@ header h1 { font-size: 17px; font-weight: 600; color: #fff; }
           <div class="fg"><label>Whisper モデル</label>
             <select id="p-whisper"><option value="tiny">tiny（最速）</option><option value="base">base</option><option value="small">small</option><option value="medium" selected>medium（推奨）</option><option value="large-v3">large-v3（高精度）</option></select></div>
         </div>
+        <hr class="divider">
+        <span class="section-label">字幕スタイル</span>
+        <div class="preset-grid" id="p-preset-grid">
+          <div class="preset-btn active" data-style="youtube" onclick="selectStyle('p','youtube',this)"><div class="ps-prev sty-youtube">字幕</div>YouTube</div>
+          <div class="preset-btn" data-style="netflix" onclick="selectStyle('p','netflix',this)"><div class="ps-prev sty-netflix">字幕</div>Netflix</div>
+          <div class="preset-btn" data-style="tiktok" onclick="selectStyle('p','tiktok',this)"><div class="ps-prev sty-tiktok">字幕</div>TikTok</div>
+          <div class="preset-btn" data-style="cinema" onclick="selectStyle('p','cinema',this)"><div class="ps-prev sty-cinema">字幕</div>映画字幕</div>
+          <div class="preset-btn" data-style="karaoke" onclick="selectStyle('p','karaoke',this)"><div class="ps-prev sty-karaoke">字幕</div>カラオケ</div>
+          <div class="preset-btn" data-style="simple" onclick="selectStyle('p','simple',this)"><div class="ps-prev sty-simple">字幕</div>シンプル</div>
+        </div>
+        <input type="hidden" id="p-style" value="youtube">
+        <hr class="divider">
+        <span class="section-label">字幕位置</span>
+        <div class="pos-grid" id="p-pos-grid">
+          <div class="pos-btn" data-pos="top-left"      onclick="selectPos('p','top-left',this)"><span class="pos-icon">↖</span><span>上部左</span></div>
+          <div class="pos-btn" data-pos="top-center"    onclick="selectPos('p','top-center',this)"><span class="pos-icon">↑</span><span>上部中</span></div>
+          <div class="pos-btn" data-pos="top-right"     onclick="selectPos('p','top-right',this)"><span class="pos-icon">↗</span><span>上部右</span></div>
+          <div class="pos-btn" data-pos="mid-center"    onclick="selectPos('p','mid-center',this)"><span class="pos-icon">⊕</span><span>中央</span></div>
+          <div class="pos-btn active" data-pos="bottom-center" onclick="selectPos('p','bottom-center',this)"><span class="pos-icon">↓</span><span>下部中</span></div>
+          <div class="pos-btn" data-pos="bottom-right"  onclick="selectPos('p','bottom-right',this)"><span class="pos-icon">↘</span><span>下部右</span></div>
+        </div>
+        <input type="hidden" id="p-pos" value="bottom-center">
+        <hr class="divider">
         <div class="row2">
-          <div class="fg"><label>字幕カラー</label>
-            <select id="p-color"><option value="yellow" selected>yellow（黄）</option><option value="white">white（白）</option><option value="red">red（赤）</option><option value="blue">blue（青）</option><option value="green">green（緑）</option><option value="orange">orange（橙）</option><option value="black">black（黒）</option></select></div>
+          <div class="fg"><label>フォントサイズ</label><input type="number" id="p-fontsize" value="48" min="20" max="120" onchange="updatePreview()"></div>
           <div class="fg"><label>無音閾値 (dB)</label><input type="number" id="p-noisedb" value="-30"></div>
         </div>
         <div class="row2">
@@ -157,13 +224,35 @@ header h1 { font-size: 17px; font-weight: 600; color: #fff; }
           <div class="fg"><label>Whisper モデル</label>
             <select id="s-whisper"><option value="tiny">tiny</option><option value="base">base</option><option value="small">small</option><option value="medium" selected>medium（推奨）</option><option value="large-v3">large-v3</option></select></div>
         </div>
-        <div class="row2">
-          <div class="fg"><label>字幕カラー</label>
-            <select id="s-color"><option value="yellow" selected>yellow（黄）</option><option value="white">white（白）</option><option value="red">red（赤）</option><option value="blue">blue（青）</option><option value="green">green（緑）</option><option value="orange">orange（橙）</option><option value="black">black（黒）</option></select></div>
-          <div class="fg"><label>背景タイプ</label>
-            <select id="s-bgtype" onchange="refreshBgOpts()"><option value="blur" selected>blur（動画ぼかし）</option><option value="color">color（単色）</option><option value="image">image（静止画ぼかし）</option></select></div>
+        <hr class="divider">
+        <span class="section-label">字幕スタイル</span>
+        <div class="preset-grid" id="s-preset-grid">
+          <div class="preset-btn active" data-style="youtube" onclick="selectStyle('s','youtube',this)"><div class="ps-prev sty-youtube">字幕</div>YouTube</div>
+          <div class="preset-btn" data-style="netflix" onclick="selectStyle('s','netflix',this)"><div class="ps-prev sty-netflix">字幕</div>Netflix</div>
+          <div class="preset-btn" data-style="tiktok" onclick="selectStyle('s','tiktok',this)"><div class="ps-prev sty-tiktok">字幕</div>TikTok</div>
+          <div class="preset-btn" data-style="cinema" onclick="selectStyle('s','cinema',this)"><div class="ps-prev sty-cinema">字幕</div>映画字幕</div>
+          <div class="preset-btn" data-style="karaoke" onclick="selectStyle('s','karaoke',this)"><div class="ps-prev sty-karaoke">字幕</div>カラオケ</div>
+          <div class="preset-btn" data-style="simple" onclick="selectStyle('s','simple',this)"><div class="ps-prev sty-simple">字幕</div>シンプル</div>
         </div>
-        <div id="s-blur-row"><div class="fg"><label>ぼかし強度</label><input type="number" id="s-blursigma" value="40"></div></div>
+        <input type="hidden" id="s-style" value="youtube">
+        <hr class="divider">
+        <span class="section-label">字幕位置</span>
+        <div class="pos-grid" id="s-pos-grid">
+          <div class="pos-btn" data-pos="top-left"      onclick="selectPos('s','top-left',this)"><span class="pos-icon">↖</span><span>上部左</span></div>
+          <div class="pos-btn" data-pos="top-center"    onclick="selectPos('s','top-center',this)"><span class="pos-icon">↑</span><span>上部中</span></div>
+          <div class="pos-btn" data-pos="top-right"     onclick="selectPos('s','top-right',this)"><span class="pos-icon">↗</span><span>上部右</span></div>
+          <div class="pos-btn" data-pos="mid-center"    onclick="selectPos('s','mid-center',this)"><span class="pos-icon">⊕</span><span>中央</span></div>
+          <div class="pos-btn active" data-pos="bottom-center" onclick="selectPos('s','bottom-center',this)"><span class="pos-icon">↓</span><span>下部中</span></div>
+          <div class="pos-btn" data-pos="bottom-right"  onclick="selectPos('s','bottom-right',this)"><span class="pos-icon">↘</span><span>下部右</span></div>
+        </div>
+        <input type="hidden" id="s-pos" value="bottom-center">
+        <hr class="divider">
+        <span class="section-label">背景設定</span>
+        <div class="row2">
+          <div class="fg"><label>背景タイプ</label>
+            <select id="s-bgtype" onchange="refreshBgOpts()"><option value="blur" selected>blur（動画ぼかし）</option><option value="color">color（単色）</option><option value="image">image（静止画）</option></select></div>
+          <div id="s-blur-row"><div class="fg"><label>ぼかし強度</label><input type="number" id="s-blursigma" value="40"></div></div>
+        </div>
         <div id="s-color-row" style="display:none"><div class="fg"><label>背景色</label>
           <select id="s-bgcolor"><option value="black" selected>black（黒）</option><option value="white">white（白）</option><option value="gray">gray（グレー）</option><option value="navy">navy（紺）</option></select></div></div>
         <div id="s-image-row" style="display:none">
@@ -193,6 +282,39 @@ header h1 { font-size: 17px; font-weight: 600; color: #fff; }
 
       <button class="run-btn" id="runBtn" disabled onclick="submitJob()">実行する</button>
     </div>
+
+    <!-- ── プレビューカード ── -->
+    <div class="card" style="margin-top:20px">
+      <div class="card-title">出力イメージ プレビュー</div>
+      <!-- 16:9 (Video / Clip) -->
+      <div class="preview-frame r169" id="preview169">
+        <div class="preview-bars"><div class="preview-bar"></div><div class="preview-bar"></div><div class="preview-bar"></div></div>
+        <div style="position:absolute;top:8px;left:0;right:0;text-align:center">
+          <span class="preview-sub pss-simple" id="previewTopText" style="display:none"></span>
+        </div>
+        <div class="preview-inner" id="previewInner169">
+          <span class="preview-sub pss-youtube" id="previewSub169">サンプルの字幕テキストです</span>
+        </div>
+      </div>
+      <!-- 9:16 (Short) -->
+      <div class="preview-frame r916" id="preview916" style="display:none">
+        <div class="preview-bars"><div class="preview-bar"></div><div class="preview-bar"></div><div class="preview-bar"></div></div>
+        <div class="preview-inner" id="previewInner916">
+          <span class="preview-sub pss-youtube" id="previewSub916">サンプルの字幕テキストです</span>
+        </div>
+      </div>
+      <div class="preview-note">※ 参考イメージです。フォント・サイズは出力ファイルで確認してください。</div>
+      <!--
+        TODO: プレビュー改善リスト
+        - [ ] アウトライン太さのリアルタイム反映スライダー
+        - [ ] フォントファミリー選択（Noto / M PLUS / IPAゴシックなど）
+        - [ ] 字幕フェードイン/アウトのアニメーションプレビュー
+        - [ ] 実動画の先頭フレームをサムネイルとして表示
+        - [ ] Clip タブ：上部/下部テキストを両方同時プレビュー
+        - [ ] ジョブ履歴の localStorage 永続化
+        - [ ] バッチ処理（複数動画を一括登録）
+      -->
+    </div>
   </div>
 
   <!-- ── 右: ジョブ一覧 ── -->
@@ -214,6 +336,25 @@ let currentPipeline = 'pipeline';
 let fileId = null;
 let bgFileId = null;
 let pollTimer = null;
+let curStyle = { p: 'youtube', s: 'youtube' };
+let curPos   = { p: 'bottom-center', s: 'bottom-center' };
+
+const STYLE_DEFS = {
+  youtube: { font_color:'yellow', bold:true,  italic:false, box_background:false, outline_size:2 },
+  netflix: { font_color:'white',  bold:true,  italic:false, box_background:true,  outline_size:0 },
+  tiktok:  { font_color:'white',  bold:true,  italic:false, box_background:false, outline_size:5 },
+  cinema:  { font_color:'white',  bold:false, italic:true,  box_background:false, outline_size:1 },
+  karaoke: { font_color:'cyan',   bold:true,  italic:false, box_background:false, outline_size:3 },
+  simple:  { font_color:'white',  bold:false, italic:false, box_background:false, outline_size:2 },
+};
+const POS_TO_ALIGN = {
+  'top-left':7, 'top-center':8, 'top-right':9,
+  'mid-center':5, 'bottom-center':2, 'bottom-right':3,
+};
+const POS_TO_CSS = {
+  'top-left':'pi-tl', 'top-center':'pi-top', 'top-right':'pi-tr',
+  'mid-center':'pi-mid', 'bottom-center':'', 'bottom-right':'pi-br',
+};
 
 // ── アップロード ──────────────────────────────────────
 const dropZone  = document.getElementById('dropZone');
@@ -272,6 +413,52 @@ function refreshBgOpts() {
   document.getElementById('s-image-row').style.display = t === 'image' ? '' : 'none';
 }
 
+// ── スタイル・位置セレクター ───────────────────
+function selectStyle(prefix, style, el) {
+  document.querySelectorAll(`#${prefix}-preset-grid .preset-btn`).forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(`${prefix}-style`).value = style;
+  curStyle[prefix] = style;
+  updatePreview();
+}
+function selectPos(prefix, pos, el) {
+  document.querySelectorAll(`#${prefix}-pos-grid .pos-btn`).forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(`${prefix}-pos`).value = pos;
+  curPos[prefix] = pos;
+  updatePreview();
+}
+function updatePreview() {
+  const isShort = currentPipeline === 'short';
+  const isClip  = currentPipeline === 'clip';
+  document.getElementById('preview169').style.display = isShort ? 'none' : '';
+  document.getElementById('preview916').style.display = isShort ? '' : 'none';
+  if (isClip) {
+    const topText = document.getElementById('c-top').value.trim();
+    const color   = document.getElementById('c-tcolor').value;
+    const topEl   = document.getElementById('previewTopText');
+    topEl.style.display = topText ? 'inline-block' : 'none';
+    topEl.textContent   = topText;
+    topEl.style.color   = color;
+    const subEl = document.getElementById('previewSub169');
+    const botText = document.getElementById('c-bottom').value.trim();
+    subEl.textContent = botText || '（下部テキスト）';
+    subEl.className = 'preview-sub pss-simple';
+    subEl.style.color = color;
+    document.getElementById('previewInner169').className = 'preview-inner';
+    return;
+  }
+  const pfx    = isShort ? 's' : 'p';
+  const style  = curStyle[pfx] || 'youtube';
+  const pos    = curPos[pfx]   || 'bottom-center';
+  const subEl  = document.getElementById(isShort ? 'previewSub916'   : 'previewSub169');
+  const innEl  = document.getElementById(isShort ? 'previewInner916' : 'previewInner169');
+  subEl.className = `preview-sub pss-${style}`;
+  subEl.style.color = '';
+  const posCss = POS_TO_CSS[pos] || '';
+  innEl.className = 'preview-inner' + (posCss ? ' ' + posCss : '');
+}
+
 // ── タブ ──────────────────────────────────────
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -281,6 +468,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     ['pipeline','short','clip'].forEach(p =>
       document.getElementById('panel-' + p).style.display = p === currentPipeline ? '' : 'none'
     );
+    updatePreview();
   });
 });
 
@@ -303,14 +491,36 @@ async function submitJob() {
 }
 
 function gatherParams() {
-  const v = id => document.getElementById(id).value;
+  const v   = id => document.getElementById(id).value;
   const chk = id => document.getElementById(id).checked;
-  if (currentPipeline === 'pipeline') return { language: v('p-lang'), whisper_model: v('p-whisper'), font_color: v('p-color'), noise_db: parseFloat(v('p-noisedb')), min_silence: parseFloat(v('p-minsilence')), skip_refine: chk('p-skiprefine'), thumbnail: chk('p-thumbnail') };
+  if (currentPipeline === 'pipeline') {
+    const style = v('p-style');
+    const def   = STYLE_DEFS[style] || STYLE_DEFS.youtube;
+    return {
+      language: v('p-lang'), whisper_model: v('p-whisper'),
+      font_color: def.font_color, subtitle_style: style,
+      subtitle_position: POS_TO_ALIGN[v('p-pos')] || 2,
+      font_size: parseInt(v('p-fontsize')),
+      bold: def.bold, italic: def.italic,
+      box_background: def.box_background, outline_size: def.outline_size,
+      noise_db: parseFloat(v('p-noisedb')), min_silence: parseFloat(v('p-minsilence')),
+      skip_refine: chk('p-skiprefine'), thumbnail: chk('p-thumbnail'),
+    };
+  }
   if (currentPipeline === 'short') {
+    const style  = v('s-style');
+    const def    = STYLE_DEFS[style] || STYLE_DEFS.youtube;
     const bgType = v('s-bgtype');
-    const p = { language: v('s-lang'), whisper_model: v('s-whisper'), font_color: v('s-color'), skip_refine: chk('s-skiprefine') };
+    const p = {
+      language: v('s-lang'), whisper_model: v('s-whisper'),
+      font_color: def.font_color, subtitle_style: style,
+      subtitle_position: POS_TO_ALIGN[v('s-pos')] || 2,
+      bold: def.bold, italic: def.italic,
+      box_background: def.box_background, outline_size: def.outline_size,
+      skip_refine: chk('s-skiprefine'),
+    };
     if (bgType !== 'color') p.blur_sigma = parseInt(v('s-blursigma'));
-    if (bgType === 'color') p.bg_color = v('s-bgcolor');
+    if (bgType === 'color')  p.bg_color  = v('s-bgcolor');
     if (bgType === 'image' && bgFileId) p.bg_file_id = bgFileId;
     return p;
   }
@@ -378,6 +588,7 @@ function jobCard(j) {
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function fmtSize(b) { if (b < 1048576) return (b/1024).toFixed(1) + ' KB'; return (b/1048576).toFixed(1) + ' MB'; }
 
+updatePreview();
 loadJobs().then(jobs => { if (jobs && jobs.some(j => j.status === 'queued' || j.status === 'running')) startPoll(); });
 </script>
 </body>

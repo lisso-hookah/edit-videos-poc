@@ -68,31 +68,65 @@ def segments_to_ass(
     text_color: str = "&H0000FFFF&",
     inner_color: str = "&H00000000&",
     outer_color: str = "&H00FFFFFF&",
+    alignment: int = 2,
+    bold: bool = False,
+    italic: bool = False,
+    outline_size: int = 2,
+    box_background: bool = False,
     out_name: str = "subs.ass",
 ) -> Path:
-    """Compose ASS file.
+    """Compose ASS subtitle file.
 
-    White/black text → single outline. Other colors → double outline (black inner + white outer).
-    Accepts English color names (yellow, white, red, …) or raw ASS codes.
+    alignment: ASS numpad layout 1-9 (2=bottom-center, 8=top-center, 5=middle).
+    box_background: semi-transparent black box behind text (Netflix style).
+    White/black text → single outline. Other colors → double outline.
     """
     text_color = color_to_ass(text_color)
     inner_color = color_to_ass(inner_color)
     outer_color = color_to_ass(outer_color)
-    single = _SINGLE_OUTLINE.get(text_color.upper())
-    if single:
-        style_line = f"Style: Default,{font},{font_size},{text_color},{text_color},{single},&H00000000&,0,0,0,0,100,100,0,0,1,2,0,2,{_MARGINS},0"
+    bold_val   = -1 if bold else 0
+    italic_val = -1 if italic else 0
+    out_sz = max(0, min(outline_size, 8))
+    align  = max(1, min(alignment, 9))
+
+    if box_background:
+        style_line = (
+            f"Style: Default,{font},{font_size},{text_color},{text_color},"
+            f"&H00000000&,&H80000000&,{bold_val},{italic_val},0,0,"
+            f"100,100,0,0,3,0,0,{align},{_MARGINS},0"
+        )
         header = _ASS_PREAMBLE + _STYLE_FMT + "\n" + style_line + _EVENTS_HEADER
         def make_events(start: str, end: str, text: str) -> list[str]:
             return [f"Dialogue: 0,{start},{end},Default,,0,0,0,,{text}"]
     else:
-        outer_style = f"Style: Outer,{font},{font_size},{outer_color},{outer_color},{outer_color},&H00000000&,0,0,0,0,100,100,0,0,1,4,0,2,{_MARGINS},0"
-        inner_style = f"Style: Inner,{font},{font_size},{text_color},{text_color},{inner_color},&H00000000&,0,0,0,0,100,100,0,0,1,2,0,2,{_MARGINS},0"
-        header = _ASS_PREAMBLE + _STYLE_FMT + "\n" + outer_style + "\n" + inner_style + _EVENTS_HEADER
-        def make_events(start: str, end: str, text: str) -> list[str]:
-            return [
-                f"Dialogue: 0,{start},{end},Outer,,0,0,0,,{text}",
-                f"Dialogue: 1,{start},{end},Inner,,0,0,0,,{text}",
-            ]
+        single = _SINGLE_OUTLINE.get(text_color.upper())
+        if single:
+            style_line = (
+                f"Style: Default,{font},{font_size},{text_color},{text_color},"
+                f"{single},&H00000000&,{bold_val},{italic_val},0,0,"
+                f"100,100,0,0,1,{out_sz},0,{align},{_MARGINS},0"
+            )
+            header = _ASS_PREAMBLE + _STYLE_FMT + "\n" + style_line + _EVENTS_HEADER
+            def make_events(start: str, end: str, text: str) -> list[str]:
+                return [f"Dialogue: 0,{start},{end},Default,,0,0,0,,{text}"]
+        else:
+            outer_sz = min(out_sz + 2, 8)
+            outer_style = (
+                f"Style: Outer,{font},{font_size},{outer_color},{outer_color},"
+                f"{outer_color},&H00000000&,{bold_val},{italic_val},0,0,"
+                f"100,100,0,0,1,{outer_sz},0,{align},{_MARGINS},0"
+            )
+            inner_style = (
+                f"Style: Inner,{font},{font_size},{text_color},{text_color},"
+                f"{inner_color},&H00000000&,{bold_val},{italic_val},0,0,"
+                f"100,100,0,0,1,{out_sz},0,{align},{_MARGINS},0"
+            )
+            header = _ASS_PREAMBLE + _STYLE_FMT + "\n" + outer_style + "\n" + inner_style + _EVENTS_HEADER
+            def make_events(start: str, end: str, text: str) -> list[str]:
+                return [
+                    f"Dialogue: 0,{start},{end},Outer,,0,0,0,,{text}",
+                    f"Dialogue: 1,{start},{end},Inner,,0,0,0,,{text}",
+                ]
 
     events: list[str] = []
     for seg in segments:
