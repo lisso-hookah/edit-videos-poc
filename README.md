@@ -14,21 +14,27 @@ Lollipop サーバー
   ├─ index.html    フロントエンド（SPA）
   ├─ api.php       ジョブキュー + ファイル保管（7日）
   └─ data/
-       ├─ uploads/   アップロード動画（処理前）
-       └─ results/   処理済み動画（ダウンロード用）
+       ├─ config.php  設定ファイル（HTTP 直接アクセス遮断）
+       ├─ uploads/    アップロード動画（処理前）
+       └─ results/    処理済み動画（ダウンロード用）
           │
-          │ HTTPS ポーリング（5秒ごと）
+          │ GitHub Actions API (workflow_dispatch)
           ▼
-Windows 11 ローカル PC
-  └─ run_worker.py  動画処理エンジン
+GitHub Actions
+  └─ ubuntu-latest ランナー
        ├─ faster-whisper（文字起こし）
        ├─ Gemini API（フィラー除去）
        └─ ffmpeg（カット・字幕焼き込み・縦型変換）
+          │
+          │ HTTPS POST（結果アップロード）
+          ▼
+Lollipop サーバー（data/results/ に保存）
 ```
 
-- **ローカル PC → Lollipop の HTTPS アウトバウンドのみ**。ポート開放・SSH トンネル不要
-- Lollipop はジョブ管理とファイル保管のみ。処理はすべてローカルで実行
+- **ローカル PC 不要** — すべての処理を GitHub Actions の無料枠で実行
+- Lollipop はジョブ管理とファイル保管のみ。処理は GitHub Actions で実行
 - アップロード動画・処理済み動画は **7日後に自動削除**
+- ローカル Worker（Windows）も引き続きオプションとして利用可能（`GITHUB_TOKEN` を空にする）
 
 ---
 
@@ -46,20 +52,40 @@ Windows 11 ローカル PC
 
 ### 必要なもの
 
-| ツール | 用途 |
+| ツール／サービス | 用途 |
 |---|---|
-| Python 3.11+ | ローカル Worker |
-| [uv](https://docs.astral.sh/uv/) | Python パッケージ管理 |
-| ffmpeg | 動画処理（PATH に追加） |
 | ロリポップ スタンダード以上 | フロントエンド＋ファイル保管 |
+| GitHub リポジトリ | Actions ランナー（無料枠） |
 | Gemini API キー | 字幕フィラー除去（Video / Short） |
 | OpenAI API キー | サムネイル生成（任意） |
 
 ---
 
-### 1. ロリポップ側のセットアップ
+### 1. GitHub Secrets の設定
 
-#### 1-1. ファイルをアップロード
+リポジトリの **Settings → Secrets and variables → Actions** で以下を登録します。
+
+| Secret 名 | 内容 |
+|---|---|
+| `GEMINI_API_KEY` | Gemini API キー（必須） |
+| `LOLLIPOP_WORKER_KEY` | `config.php` の `WORKER_KEY` と同じ値（必須） |
+| `OPENAI_API_KEY` | OpenAI API キー（サムネイル生成時のみ） |
+
+---
+
+### 2. GitHub PAT の取得
+
+Lollipop PHP が GitHub Actions を起動するために Personal Access Token (PAT) が必要です。
+
+1. [https://github.com/settings/tokens](https://github.com/settings/tokens) → **Generate new token (classic)**
+2. スコープ: **`workflow`** にチェック
+3. 生成されたトークンをコピーしておく（再表示不可）
+
+---
+
+### 3. ロリポップ側のセットアップ
+
+#### 3-1. ファイルをアップロード
 
 ロリポップのファイルマネージャーまたは FTP で、対象ドメインの**公開ディレクトリ**（例: `public_html/`）に以下をアップロードします。
 
@@ -69,98 +95,42 @@ deploy/lollipop/
 ├── index.html     → 公開ディレクトリ直下
 ├── .htaccess      → 公開ディレクトリ直下
 └── data/
-    └── .htaccess  → data/ フォルダを作成して中に配置
+    ├── .htaccess  → data/ フォルダを作成して中に配置
+    └── config.php → data/ フォルダの中に配置
 ```
 
-#### 1-2. WORKER_KEY を設定
+#### 3-2. config.php を設定
 
-`api.php` の先頭にある `WORKER_KEY` をランダムな文字列に変更します（ローカル Worker と必ず一致させる）。
+`data/config.php` を編集して各値を設定します。
 
 ```php
-define('WORKER_KEY', 'ここを長いランダム文字列に変更');
+// ① Worker 認証キー（フロントエンド・GHA と共有）
+define('WORKER_KEY',   'ここを長いランダム文字列に変更');  // ← 必ず変更
+
+// ② GitHub PAT（workflow_dispatch を呼ぶ権限）
+define('GITHUB_TOKEN', 'ghp_xxxxxxxxxxxx');               // ← 手順2 で取得したトークン
+
+// ③ リポジトリ名
+define('GITHUB_REPO',  'lisso-hookah/edit-videos-poc');   // ← 変更不要（フォークした場合は変更）
+
+// ④ ブランチ名
+define('GITHUB_REF',   'main');                           // ← 変更不要
 ```
 
-> **生成例**: パスワードマネージャーや `openssl rand -hex 32` コマンドで生成
+> **WORKER_KEY 生成例**: `openssl rand -hex 32`
 
 ---
 
-### 2. ローカル PC（Windows 11）のセットアップ
-
-#### 2-1. リポジトリを取得
-
-```powershell
-git clone https://github.com/lisso-hookah/edit-videos-poc.git
-cd edit-videos-poc
-```
-
-#### 2-2. uv をインストール（未導入の場合）
-
-```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-```
-
-#### 2-3. 依存パッケージをインストール
-
-```powershell
-uv sync
-```
-
-#### 2-4. ffmpeg をインストール
-
-[ffmpeg.org](https://ffmpeg.org/download.html) からダウンロードして PATH に追加します。
-
-確認:
-```powershell
-ffmpeg -version
-```
-
-#### 2-5. 環境変数を設定
-
-`.env.example` をコピーして `.env` を作成し、各値を設定します。
-
-```powershell
-copy .env.example .env
-```
-
-```env
-# Gemini API キー（Video / Short パイプラインで必要）
-GEMINI_API_KEY=your_gemini_key
-
-# OpenAI API キー（サムネイル生成、任意）
-OPENAI_API_KEY=your_openai_key
-
-# ロリポップのドメイン（末尾スラッシュなし）
-LOLLIPOP_API_URL=https://your-domain.example.com
-
-# api.php の WORKER_KEY と同じ値
-WORKER_KEY=ここを長いランダム文字列に変更
-```
-
-#### 2-6. Worker を起動
-
-```powershell
-uv run python scripts\run_worker.py
-```
-
-起動すると 5 秒ごとにロリポップへポーリングします。ジョブが投入されると自動的に処理を開始します。
-
-```
-[worker] 起動 → https://your-domain.example.com
-[worker] Ctrl+C で停止
-```
-
----
-
-### 3. 使い方
+### 4. 使い方
 
 1. ブラウザで `https://your-domain.example.com` を開く
 2. 動画ファイル（MP4 / MOV / WAV）をドラッグ＆ドロップ
 3. パイプライン（Video / Short / Clip）を選択して設定を入力
-4. 「実行する」をクリック
-5. ジョブ一覧でリアルタイムの進捗を確認
+4. 「実行する」をクリック → GitHub Actions が自動起動
+5. ジョブ一覧でリアルタイムの進捗を確認（5秒ごとに更新）
 6. 完了後、「↓ ダウンロード」から処理済み動画を取得
 
-> Worker（ローカル PC）が起動していない場合、ジョブは「待機中」のままになります
+> Actions の起動には数十秒〜数分かかります（ランナーのキュー待ちによる）
 
 ---
 
@@ -218,7 +188,21 @@ uv run python scripts\run_worker.py
 
 Worker を経由せず、直接スクリプトを実行することもできます。
 
+### 必要なもの（ローカル実行時）
+
+| ツール | 用途 |
+|---|---|
+| Python 3.11+ | ローカル実行 |
+| [uv](https://docs.astral.sh/uv/) | Python パッケージ管理 |
+| ffmpeg | 動画処理（PATH に追加） |
+
 ```powershell
+# セットアップ
+git clone https://github.com/lisso-hookah/edit-videos-poc.git
+cd edit-videos-poc
+uv sync
+copy .env.example .env  # .env を編集して API キーを設定
+
 # Video Pipeline
 uv run python scripts\run_pipeline.py videos\input.mp4 --language ja --font-color yellow
 
@@ -231,19 +215,22 @@ uv run python scripts\run_clip.py videos\input.mp4 --start 10 --end 40 --top-tex
 
 ---
 
-## GitHub Actions から実行
+## ローカル Worker モード（オプション）
 
-ロリポップ Worker が使えない環境での代替手段として、GitHub Actions でも処理を実行できます。
+GitHub Actions を使わず、Windows PC をワーカーとして使う場合は `config.php` の `GITHUB_TOKEN` を空にします。
 
-**Actions → 各ワークフロー → Run workflow** から手動実行し、成果物を Artifacts からダウンロードします。
+```php
+define('GITHUB_TOKEN', '');  // 空にするとローカル Worker モードになる
+```
 
-| ワークフロー | 用途 |
-|---|---|
-| Run Video Pipeline | 横動画の字幕付き編集 |
-| Run Short Video Pipeline | 縦型ショート動画作成 |
-| Clip Video | 切り抜き＋テキスト合成 |
+ローカル Worker の起動:
 
-必要な Secrets: `GEMINI_API_KEY`（必須）、`OPENAI_API_KEY`（サムネイル生成時のみ）
+```powershell
+# .env に LOLLIPOP_API_URL と WORKER_KEY を設定してから
+uv run python scripts\run_worker.py
+```
+
+起動すると 5 秒ごとにロリポップへポーリングします。
 
 ---
 
@@ -256,10 +243,11 @@ edit-videos-poc/
 │   ├── index.html            SPA フロントエンド
 │   ├── .htaccess             Apache ルーティング設定
 │   └── data/
-│       └── .htaccess         data/ への直接アクセスを拒否
+│       ├── .htaccess         data/ への直接アクセスを拒否
+│       └── config.php        設定ファイル（WORKER_KEY / GITHUB_TOKEN など）
 │
 ├── scripts/
-│   ├── run_worker.py         Windows ローカル Worker（常駐プロセス）
+│   ├── run_worker.py         Windows ローカル Worker（オプション）
 │   ├── run_pipeline.py       Video Pipeline CLI
 │   ├── run_short.py          Short Video Pipeline CLI
 │   ├── run_clip.py           Clip Video CLI
@@ -283,11 +271,11 @@ edit-videos-poc/
 │       └── static/index.html
 │
 ├── .github/workflows/
-│   ├── run-pipeline.yml
-│   ├── run-short.yml
-│   └── run-clip.yml
+│   ├── run-pipeline.yml      Video Pipeline（Lollipop / 直接 両対応）
+│   ├── run-short.yml         Short Pipeline（Lollipop / 直接 両対応）
+│   └── run-clip.yml          Clip Video（Lollipop / 直接 両対応）
 │
-├── .env.example              環境変数テンプレート
+├── .env.example              環境変数テンプレート（ローカル実行時）
 ├── pyproject.toml
 └── output/                   処理結果の出力先（ローカル実行時）
 ```
@@ -303,4 +291,5 @@ edit-videos-poc/
 | ジョブ状態 JSON | Lollipop `data/jobs/` | 7日で自動削除 |
 
 - 自動削除はリクエストのたびに確率的に実行（約 5% の確率）
+- GitHub Actions の処理コストは無料枠（月 2,000 分）で対応
 - Lollipop の使用可能ストレージの範囲内で運用

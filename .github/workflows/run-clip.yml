@@ -4,12 +4,29 @@ on:
   workflow_dispatch:
     inputs:
       video_path:
-        description: "リポジトリ内の動画ファイルパス (例: samples/input.mp4)"
-        required: true
+        description: "リポジトリ内の動画ファイルパス (例: samples/input.mp4) — Lollipop モード時は不要"
+        required: false
+        default: ""
+        type: string
+      lollipop_api_url:
+        description: "Lollipop API の URL (例: https://your-domain.example.com) — Lollipop モード時に設定"
+        required: false
+        default: ""
+        type: string
+      job_id:
+        description: "Lollipop ジョブ ID — Lollipop モード時に設定"
+        required: false
+        default: ""
+        type: string
+      file_id:
+        description: "Lollipop アップロードファイル ID — Lollipop モード時に設定"
+        required: false
+        default: ""
         type: string
       start_time:
         description: "切り抜き開始時間 (秒 または HH:MM:SS)"
-        required: true
+        required: false
+        default: "0"
         type: string
       end_time:
         description: "切り抜き終了時間 (秒 または HH:MM:SS、未指定で動画末尾まで)"
@@ -67,11 +84,33 @@ jobs:
       - name: Install Python dependencies
         run: pip install -e .
 
+      - name: Download video from Lollipop
+        if: ${{ inputs.lollipop_api_url != '' && inputs.file_id != '' }}
+        run: |
+          curl -fL \
+            -H "X-Worker-Key: ${{ secrets.LOLLIPOP_WORKER_KEY }}" \
+            "${{ inputs.lollipop_api_url }}/api/worker/uploads/${{ inputs.file_id }}" \
+            -o input_video.mp4
+          echo "VIDEO_PATH=input_video.mp4" >> "$GITHUB_ENV"
+
+      - name: Set video path (direct mode)
+        if: ${{ inputs.lollipop_api_url == '' }}
+        run: echo "VIDEO_PATH=${{ inputs.video_path }}" >> "$GITHUB_ENV"
+
+      - name: Update progress — 処理開始
+        if: ${{ inputs.lollipop_api_url != '' && inputs.job_id != '' }}
+        run: |
+          curl -s -X POST \
+            -H "X-Worker-Key: ${{ secrets.LOLLIPOP_WORKER_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"progress":5,"progress_label":"GitHub Actions 処理開始"}' \
+            "${{ inputs.lollipop_api_url }}/api/worker/jobs/${{ inputs.job_id }}/progress" || true
+
       - name: Run clip
         env:
           WORK_DIR: ./output
         run: |
-          ARGS="${{ inputs.video_path }} --start ${{ inputs.start_time }}"
+          ARGS="$VIDEO_PATH --start ${{ inputs.start_time }}"
           ARGS="$ARGS --font \"$CLIP_FONT\""
           ARGS="$ARGS --font-size ${{ inputs.font_size }}"
           ARGS="$ARGS --text-color ${{ inputs.text_color }}"
@@ -86,7 +125,29 @@ jobs:
           fi
           eval python scripts/run_clip.py $ARGS
 
-      - name: Upload output
+      - name: Upload result to Lollipop
+        if: ${{ success() && inputs.lollipop_api_url != '' && inputs.job_id != '' }}
+        run: |
+          RESULT=$(find output/clip -name "*.mp4" | head -1)
+          if [ -z "$RESULT" ]; then
+            echo "ERROR: 結果ファイルが見つかりません"
+            exit 1
+          fi
+          curl -fL -X POST \
+            -H "X-Worker-Key: ${{ secrets.LOLLIPOP_WORKER_KEY }}" \
+            -F "file=@$RESULT;type=video/mp4" \
+            "${{ inputs.lollipop_api_url }}/api/worker/jobs/${{ inputs.job_id }}/complete"
+
+      - name: Report failure to Lollipop
+        if: ${{ failure() && inputs.lollipop_api_url != '' && inputs.job_id != '' }}
+        run: |
+          curl -s -X POST \
+            -H "X-Worker-Key: ${{ secrets.LOLLIPOP_WORKER_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"error\":\"GitHub Actions ジョブが失敗しました (run: ${{ github.run_id }})\"}" \
+            "${{ inputs.lollipop_api_url }}/api/worker/jobs/${{ inputs.job_id }}/fail" || true
+
+      - name: Upload output (artifact)
         uses: actions/upload-artifact@v4
         if: always()
         with:
