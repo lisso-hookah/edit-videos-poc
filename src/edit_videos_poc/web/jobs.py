@@ -83,6 +83,8 @@ def _build_command(job: Job) -> tuple[str, list[str], dict[str, str]]:
             "--subtitle-position", str(p.get("subtitle_position", 2)),
             "--outline-size", str(p.get("outline_size", 2)),
         ]
+        if p.get("font"):
+            args += ["--font", str(p["font"])]
         if p.get("bold"):
             args.append("--bold")
         if p.get("italic"):
@@ -105,6 +107,8 @@ def _build_command(job: Job) -> tuple[str, list[str], dict[str, str]]:
             "--outline-size", str(p.get("outline_size", 2)),
             "--blur-sigma", str(p.get("blur_sigma", "40")),
         ]
+        if p.get("font"):
+            args += ["--font", str(p["font"])]
         if p.get("bold"):
             args.append("--bold")
         if p.get("italic"):

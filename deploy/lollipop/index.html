@@ -134,6 +134,9 @@ header h1 { font-size: 17px; font-weight: 600; color: #fff; }
 .preview-sub.pss-karaoke { color: cyan; background: rgba(0,0,30,.5); text-shadow: -1px -1px 0 navy, 1px 1px 0 navy; }
 .preview-sub.pss-simple  { color: white; font-weight: normal; text-shadow: -1px -1px 0 rgba(0,0,0,.8), 1px 1px 0 rgba(0,0,0,.8); }
 .preview-note { font-size: 11px; color: var(--muted); margin-top: 8px; text-align: center; }
+.slider-row { display: flex; align-items: center; gap: 10px; }
+.slider-row input[type=range] { flex: 1; accent-color: var(--accent); }
+.slider-val { font-size: 12px; color: var(--text); min-width: 20px; text-align: right; }
 </style>
 </head>
 <body>
@@ -202,13 +205,25 @@ header h1 { font-size: 17px; font-weight: 600; color: #fff; }
         </div>
         <input type="hidden" id="p-pos" value="bottom-center">
         <hr class="divider">
-        <div class="row2">
-          <div class="fg"><label>フォントサイズ</label><input type="number" id="p-fontsize" value="48" min="20" max="120" onchange="updatePreview()"></div>
-          <div class="fg"><label>無音閾値 (dB)</label><input type="number" id="p-noisedb" value="-30"></div>
+        <div class="fg"><label>フォント</label>
+          <select id="p-font" onchange="updatePreview()">
+            <option value="Noto Sans CJK JP" selected>Noto Sans CJK JP（標準）</option>
+            <option value="Noto Serif CJK JP">Noto Serif CJK JP（明朝）</option>
+            <option value="M PLUS Rounded 1c">M PLUS Rounded 1c（丸ゴシック）</option>
+            <option value="IPAGothic">IPAGothic</option>
+            <option value="BIZ UDGothic">BIZ UDGothic（UD ゴシック）</option>
+            <option value="Arial">Arial（欧文）</option>
+          </select>
         </div>
         <div class="row2">
+          <div class="fg"><label>フォントサイズ</label><input type="number" id="p-fontsize" value="48" min="20" max="120" onchange="updatePreview()"></div>
+          <div class="fg"><label>アウトライン太さ: <span id="p-outline-val">2</span>px</label>
+            <div class="slider-row"><input type="range" id="p-outline" min="0" max="8" value="2" oninput="syncSlider('p');updatePreview()"><span class="slider-val" id="p-outline-disp">2</span></div>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="fg"><label>無音閾値 (dB)</label><input type="number" id="p-noisedb" value="-30"></div>
           <div class="fg"><label>最小無音長 (秒)</label><input type="number" id="p-minsilence" value="0.5" step="0.1"></div>
-          <div></div>
         </div>
         <div class="row2">
           <div class="fg check"><input type="checkbox" id="p-skiprefine"><label for="p-skiprefine">Gemini 除去スキップ</label></div>
@@ -247,6 +262,23 @@ header h1 { font-size: 17px; font-weight: 600; color: #fff; }
         </div>
         <input type="hidden" id="s-pos" value="bottom-center">
         <hr class="divider">
+        <div class="fg"><label>フォント</label>
+          <select id="s-font" onchange="updatePreview()">
+            <option value="Noto Sans CJK JP" selected>Noto Sans CJK JP（標準）</option>
+            <option value="Noto Serif CJK JP">Noto Serif CJK JP（明朝）</option>
+            <option value="M PLUS Rounded 1c">M PLUS Rounded 1c（丸ゴシック）</option>
+            <option value="IPAGothic">IPAGothic</option>
+            <option value="BIZ UDGothic">BIZ UDGothic（UD ゴシック）</option>
+            <option value="Arial">Arial（欧文）</option>
+          </select>
+        </div>
+        <div class="row2">
+          <div class="fg"><label>アウトライン太さ: <span id="s-outline-val">2</span>px</label>
+            <div class="slider-row"><input type="range" id="s-outline" min="0" max="8" value="2" oninput="syncSlider('s');updatePreview()"><span class="slider-val" id="s-outline-disp">2</span></div>
+          </div>
+          <div></div>
+        </div>
+        <hr class="divider">
         <span class="section-label">背景設定</span>
         <div class="row2">
           <div class="fg"><label>背景タイプ</label>
@@ -270,8 +302,8 @@ header h1 { font-size: 17px; font-weight: 600; color: #fff; }
           <div class="fg"><label>終了時間</label><input type="text" id="c-end" placeholder="空白で末尾まで"></div>
         </div>
         <div class="row2">
-          <div class="fg"><label>上部テキスト</label><input type="text" id="c-top" placeholder="省略可"></div>
-          <div class="fg"><label>下部テキスト</label><input type="text" id="c-bottom" placeholder="省略可"></div>
+          <div class="fg"><label>上部テキスト</label><input type="text" id="c-top" placeholder="省略可" oninput="updatePreview()"></div>
+          <div class="fg"><label>下部テキスト</label><input type="text" id="c-bottom" placeholder="省略可" oninput="updatePreview()"></div>
         </div>
         <div class="row2">
           <div class="fg"><label>テキストカラー</label>
@@ -289,7 +321,7 @@ header h1 { font-size: 17px; font-weight: 600; color: #fff; }
       <!-- 16:9 (Video / Clip) -->
       <div class="preview-frame r169" id="preview169">
         <div class="preview-bars"><div class="preview-bar"></div><div class="preview-bar"></div><div class="preview-bar"></div></div>
-        <div style="position:absolute;top:8px;left:0;right:0;text-align:center">
+        <div style="position:absolute;top:8px;left:0;right:0;text-align:center;padding:0 8px">
           <span class="preview-sub pss-simple" id="previewTopText" style="display:none"></span>
         </div>
         <div class="preview-inner" id="previewInner169">
@@ -370,6 +402,9 @@ document.getElementById('removeFile').addEventListener('click', () => {
   document.getElementById('filePill').classList.remove('show');
   document.getElementById('runBtn').disabled = true;
   fileInput.value = '';
+  const grad = 'linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)';
+  document.getElementById('preview169').style.background = grad;
+  document.getElementById('preview916').style.background = grad;
 });
 
 async function doUpload(file) {
@@ -386,9 +421,32 @@ async function doUpload(file) {
     document.getElementById('fileSize').textContent = fmtSize(file.size);
     document.getElementById('filePill').classList.add('show');
     document.getElementById('runBtn').disabled = false;
+    captureVideoFrame(file);
   } catch(e) { alert('アップロード失敗: ' + e.message); }
   document.getElementById('uploadProg').style.display = 'none';
   dropZone.style.opacity = '1';
+}
+
+function captureVideoFrame(file) {
+  if (!file.type.startsWith('video/')) return;
+  const url = URL.createObjectURL(file);
+  const video = document.createElement('video');
+  video.src = url; video.muted = true; video.playsInline = true;
+  video.addEventListener('loadeddata', () => {
+    video.currentTime = 0;
+  });
+  video.addEventListener('seeked', () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 320;
+    canvas.height = video.videoHeight || 180;
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+    URL.revokeObjectURL(url);
+    const bgStyle = `url(${dataUrl}) center/cover no-repeat`;
+    document.getElementById('preview169').style.background = bgStyle;
+    document.getElementById('preview916').style.background = bgStyle;
+  });
+  video.load();
 }
 
 // 背景画像
@@ -413,12 +471,23 @@ function refreshBgOpts() {
   document.getElementById('s-image-row').style.display = t === 'image' ? '' : 'none';
 }
 
+// ── スライダー同期 ────────────────────────────
+function syncSlider(prefix) {
+  const v = document.getElementById(`${prefix}-outline`).value;
+  document.getElementById(`${prefix}-outline-val`).textContent  = v;
+  document.getElementById(`${prefix}-outline-disp`).textContent = v;
+}
+
 // ── スタイル・位置セレクター ───────────────────
 function selectStyle(prefix, style, el) {
   document.querySelectorAll(`#${prefix}-preset-grid .preset-btn`).forEach(b => b.classList.remove('active'));
   el.classList.add('active');
   document.getElementById(`${prefix}-style`).value = style;
   curStyle[prefix] = style;
+  // スタイルプリセットに合わせてアウトラインスライダーを初期化
+  const def = STYLE_DEFS[style] || STYLE_DEFS.youtube;
+  const slider = document.getElementById(`${prefix}-outline`);
+  if (slider) { slider.value = def.outline_size; syncSlider(prefix); }
   updatePreview();
 }
 function selectPos(prefix, pos, el) {
@@ -435,16 +504,20 @@ function updatePreview() {
   document.getElementById('preview916').style.display = isShort ? '' : 'none';
   if (isClip) {
     const topText = document.getElementById('c-top').value.trim();
-    const color   = document.getElementById('c-tcolor').value;
-    const topEl   = document.getElementById('previewTopText');
-    topEl.style.display = topText ? 'inline-block' : 'none';
-    topEl.textContent   = topText;
-    topEl.style.color   = color;
-    const subEl = document.getElementById('previewSub169');
     const botText = document.getElementById('c-bottom').value.trim();
-    subEl.textContent = botText || '（下部テキスト）';
-    subEl.className = 'preview-sub pss-simple';
-    subEl.style.color = color;
+    const color   = document.getElementById('c-tcolor').value;
+    // 上部テキスト
+    const topEl = document.getElementById('previewTopText');
+    topEl.style.display   = topText ? 'inline-block' : 'none';
+    topEl.textContent     = topText;
+    topEl.style.color     = color;
+    topEl.style.textShadow = '-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000';
+    // 下部テキスト
+    const subEl = document.getElementById('previewSub169');
+    subEl.textContent     = botText || (topText ? '' : '（テキストを入力してください）');
+    subEl.style.display   = (botText || !topText) ? '' : 'none';
+    subEl.className       = 'preview-sub pss-simple';
+    subEl.style.color     = color;
     document.getElementById('previewInner169').className = 'preview-inner';
     return;
   }
@@ -455,6 +528,8 @@ function updatePreview() {
   const innEl  = document.getElementById(isShort ? 'previewInner916' : 'previewInner169');
   subEl.className = `preview-sub pss-${style}`;
   subEl.style.color = '';
+  const fontEl = document.getElementById(`${pfx}-font`);
+  if (fontEl) subEl.style.fontFamily = fontEl.value;
   const posCss = POS_TO_CSS[pos] || '';
   innEl.className = 'preview-inner' + (posCss ? ' ' + posCss : '');
 }
@@ -500,9 +575,11 @@ function gatherParams() {
       language: v('p-lang'), whisper_model: v('p-whisper'),
       font_color: def.font_color, subtitle_style: style,
       subtitle_position: POS_TO_ALIGN[v('p-pos')] || 2,
+      font: v('p-font'),
       font_size: parseInt(v('p-fontsize')),
       bold: def.bold, italic: def.italic,
-      box_background: def.box_background, outline_size: def.outline_size,
+      box_background: def.box_background,
+      outline_size: parseInt(document.getElementById('p-outline').value),
       noise_db: parseFloat(v('p-noisedb')), min_silence: parseFloat(v('p-minsilence')),
       skip_refine: chk('p-skiprefine'), thumbnail: chk('p-thumbnail'),
     };
@@ -515,8 +592,10 @@ function gatherParams() {
       language: v('s-lang'), whisper_model: v('s-whisper'),
       font_color: def.font_color, subtitle_style: style,
       subtitle_position: POS_TO_ALIGN[v('s-pos')] || 2,
+      font: v('s-font'),
       bold: def.bold, italic: def.italic,
-      box_background: def.box_background, outline_size: def.outline_size,
+      box_background: def.box_background,
+      outline_size: parseInt(document.getElementById('s-outline').value),
       skip_refine: chk('s-skiprefine'),
     };
     if (bgType !== 'color') p.blur_sigma = parseInt(v('s-blursigma'));
@@ -588,6 +667,42 @@ function jobCard(j) {
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function fmtSize(b) { if (b < 1048576) return (b/1024).toFixed(1) + ' KB'; return (b/1048576).toFixed(1) + ' MB'; }
 
+// ── localStorage 設定保存・復元 ────────────────
+const LS_KEY = 'evp_settings_v1';
+function saveSettings() {
+  const get = id => { const el = document.getElementById(id); return el ? el.value : null; };
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({
+      pipeline: currentPipeline,
+      pStyle: curStyle.p, pPos: curPos.p,
+      sStyle: curStyle.s, sPos: curPos.s,
+      pFont: get('p-font'), pFontsize: get('p-fontsize'), pOutline: get('p-outline'),
+      pNoisedb: get('p-noisedb'), pMinsilence: get('p-minsilence'),
+      sFont: get('s-font'), sOutline: get('s-outline'), sBgtype: get('s-bgtype'),
+    }));
+  } catch(_) {}
+}
+function loadSettings() {
+  let s;
+  try { s = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch(_) { return; }
+  if (!s) return;
+  const set = (id, val) => { if (val == null) return; const el = document.getElementById(id); if (el) el.value = val; };
+  set('p-font', s.pFont); set('p-fontsize', s.pFontsize);
+  set('p-noisedb', s.pNoisedb); set('p-minsilence', s.pMinsilence);
+  set('s-font', s.sFont);
+  if (s.pOutline != null) { set('p-outline', s.pOutline); syncSlider('p'); }
+  if (s.sOutline != null) { set('s-outline', s.sOutline); syncSlider('s'); }
+  if (s.sBgtype) { set('s-bgtype', s.sBgtype); refreshBgOpts(); }
+  if (s.pStyle) { const b = document.querySelector(`#p-preset-grid [data-style="${s.pStyle}"]`); if (b) selectStyle('p', s.pStyle, b); }
+  if (s.sStyle) { const b = document.querySelector(`#s-preset-grid [data-style="${s.sStyle}"]`); if (b) selectStyle('s', s.sStyle, b); }
+  if (s.pPos) { const b = document.querySelector(`#p-pos-grid [data-pos="${s.pPos}"]`); if (b) selectPos('p', s.pPos, b); }
+  if (s.sPos) { const b = document.querySelector(`#s-pos-grid [data-pos="${s.sPos}"]`); if (b) selectPos('s', s.sPos, b); }
+  if (s.pipeline) { const t = document.querySelector(`.tab-btn[data-p="${s.pipeline}"]`); if (t) t.click(); }
+}
+document.addEventListener('change', saveSettings);
+document.addEventListener('click', e => { if (e.target.closest('.preset-btn,.pos-btn,.tab-btn')) saveSettings(); });
+
+loadSettings();
 updatePreview();
 loadJobs().then(jobs => { if (jobs && jobs.some(j => j.status === 'queued' || j.status === 'running')) startPoll(); });
 </script>
