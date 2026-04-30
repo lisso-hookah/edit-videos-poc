@@ -1,0 +1,19 @@
+Options -Indexes
+RewriteEngine On
+
+# 静的ファイル (index.html / favicon 等) はそのまま返す
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# /api/* → api.php
+RewriteRule ^api(/.*)?$ api.php [QSA,L]
+
+# それ以外 (/) → index.html
+RewriteRule ^$ index.html [L]
+
+# PHP 制限を緩和（ロリポップ側が上書きする場合あり）
+php_value max_execution_time    600
+php_value max_input_time        600
+php_value post_max_size         512M
+php_value upload_max_filesize   512M
+php_value memory_limit          256M
