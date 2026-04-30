@@ -168,9 +168,8 @@ function handle_download(string $job_id): never
         json_response(['error' => 'ファイルが見つかりません'], 404);
     }
 
-    $name = basename($path);
     header('Content-Type: video/mp4');
-    header('Content-Disposition: attachment; filename="' . $name . '"');
+    header('Content-Disposition: attachment; filename="result.mp4"');
     header('Content-Length: ' . filesize($path));
     header('Cache-Control: no-cache');
     readfile($path);
