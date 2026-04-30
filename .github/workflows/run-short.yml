@@ -4,8 +4,29 @@ on:
   workflow_dispatch:
     inputs:
       video_path:
-        description: "リポジトリ内の動画ファイルパス (例: samples/input.mp4)"
-        required: true
+        description: "リポジトリ内の動画ファイルパス (例: samples/input.mp4) — Lollipop モード時は不要"
+        required: false
+        default: ""
+        type: string
+      lollipop_api_url:
+        description: "Lollipop API の URL (例: https://your-domain.example.com) — Lollipop モード時に設定"
+        required: false
+        default: ""
+        type: string
+      job_id:
+        description: "Lollipop ジョブ ID — Lollipop モード時に設定"
+        required: false
+        default: ""
+        type: string
+      file_id:
+        description: "Lollipop アップロードファイル ID — Lollipop モード時に設定"
+        required: false
+        default: ""
+        type: string
+      lollipop_bg_file_id:
+        description: "Lollipop 背景画像ファイル ID (background_type=image 時) — Lollipop モード時に設定"
+        required: false
+        default: ""
         type: string
       language:
         description: "文字起こし言語 (ja / en など)"
@@ -19,9 +40,9 @@ on:
         type: string
       skip_refine:
         description: "Gemini によるフィラー除去をスキップする"
-        default: false
+        default: "false"
         required: false
-        type: boolean
+        type: string
       font_color:
         description: "字幕文字色 (yellow / white / red / black / blue など)"
         default: "yellow"
@@ -31,18 +52,14 @@ on:
         description: "背景の種類: blur=動画ぼかし / color=単色 / image=指定画像ぼかし"
         default: "blur"
         required: false
-        type: choice
-        options:
-          - blur
-          - color
-          - image
+        type: string
       background_color:
         description: "単色背景の色 (background_type=color のとき使用: black / white / など)"
         default: "black"
         required: false
         type: string
       background_image:
-        description: "背景画像パス (background_type=image のとき使用: 例 samples/bg.jpg)"
+        description: "背景画像パス (background_type=image かつ直接モード時: 例 samples/bg.jpg)"
         default: ""
         required: false
         type: string
@@ -83,13 +100,48 @@ jobs:
       - name: Install Python dependencies
         run: pip install -e .
 
+      - name: Download video from Lollipop
+        if: ${{ inputs.lollipop_api_url != '' && inputs.file_id != '' }}
+        run: |
+          curl -fL \
+            -H "X-Worker-Key: ${{ secrets.LOLLIPOP_WORKER_KEY }}" \
+            "${{ inputs.lollipop_api_url }}/api/worker/uploads/${{ inputs.file_id }}" \
+            -o input_video.mp4
+          echo "VIDEO_PATH=input_video.mp4" >> "$GITHUB_ENV"
+
+      - name: Download background image from Lollipop
+        if: ${{ inputs.lollipop_api_url != '' && inputs.lollipop_bg_file_id != '' }}
+        run: |
+          curl -fL \
+            -H "X-Worker-Key: ${{ secrets.LOLLIPOP_WORKER_KEY }}" \
+            "${{ inputs.lollipop_api_url }}/api/worker/uploads/${{ inputs.lollipop_bg_file_id }}" \
+            -o bg_image.jpg
+          echo "BG_IMAGE_PATH=bg_image.jpg" >> "$GITHUB_ENV"
+
+      - name: Set video path (direct mode)
+        if: ${{ inputs.lollipop_api_url == '' }}
+        run: |
+          echo "VIDEO_PATH=${{ inputs.video_path }}" >> "$GITHUB_ENV"
+          if [ -n "${{ inputs.background_image }}" ]; then
+            echo "BG_IMAGE_PATH=${{ inputs.background_image }}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Update progress — 処理開始
+        if: ${{ inputs.lollipop_api_url != '' && inputs.job_id != '' }}
+        run: |
+          curl -s -X POST \
+            -H "X-Worker-Key: ${{ secrets.LOLLIPOP_WORKER_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"progress":5,"progress_label":"GitHub Actions 処理開始"}' \
+            "${{ inputs.lollipop_api_url }}/api/worker/jobs/${{ inputs.job_id }}/progress" || true
+
       - name: Run short pipeline
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           WHISPER_MODEL: ${{ inputs.whisper_model }}
           WORK_DIR: ./output
         run: |
-          ARGS="${{ inputs.video_path }} --language ${{ inputs.language }}"
+          ARGS="$VIDEO_PATH --language ${{ inputs.language }}"
           ARGS="$ARGS --font \"$SUBTITLE_FONT\""
           ARGS="$ARGS --font-color ${{ inputs.font_color }}"
           ARGS="$ARGS --blur-sigma ${{ inputs.blur_sigma }}"
@@ -98,12 +150,34 @@ jobs:
           fi
           if [ "${{ inputs.background_type }}" = "color" ]; then
             ARGS="$ARGS --bg-color ${{ inputs.background_color }}"
-          elif [ "${{ inputs.background_type }}" = "image" ] && [ -n "${{ inputs.background_image }}" ]; then
-            ARGS="$ARGS --bg-image ${{ inputs.background_image }}"
+          elif [ "${{ inputs.background_type }}" = "image" ] && [ -n "$BG_IMAGE_PATH" ]; then
+            ARGS="$ARGS --bg-image $BG_IMAGE_PATH"
           fi
           eval python scripts/run_short.py $ARGS
 
-      - name: Upload output
+      - name: Upload result to Lollipop
+        if: ${{ success() && inputs.lollipop_api_url != '' && inputs.job_id != '' }}
+        run: |
+          RESULT=$(find output/vertical -name "*.mp4" | head -1)
+          if [ -z "$RESULT" ]; then
+            echo "ERROR: 結果ファイルが見つかりません"
+            exit 1
+          fi
+          curl -fL -X POST \
+            -H "X-Worker-Key: ${{ secrets.LOLLIPOP_WORKER_KEY }}" \
+            -F "file=@$RESULT;type=video/mp4" \
+            "${{ inputs.lollipop_api_url }}/api/worker/jobs/${{ inputs.job_id }}/complete"
+
+      - name: Report failure to Lollipop
+        if: ${{ failure() && inputs.lollipop_api_url != '' && inputs.job_id != '' }}
+        run: |
+          curl -s -X POST \
+            -H "X-Worker-Key: ${{ secrets.LOLLIPOP_WORKER_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"error\":\"GitHub Actions ジョブが失敗しました (run: ${{ github.run_id }})\"}" \
+            "${{ inputs.lollipop_api_url }}/api/worker/jobs/${{ inputs.job_id }}/fail" || true
+
+      - name: Upload output (artifact)
         uses: actions/upload-artifact@v4
         if: always()
         with:
