@@ -373,6 +373,7 @@ dependencies = [
     { name = "openai" },
     { name = "python-dotenv" },
     { name = "python-multipart" },
+    { name = "requests" },
     { name = "srt" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -392,6 +393,7 @@ requires-dist = [
     { name = "openai", specifier = ">=2.33.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "python-multipart", specifier = ">=0.0.27" },
+    { name = "requests", specifier = ">=2.33.1" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6.0" },
     { name = "srt", specifier = ">=3.5.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.46.0" },
