@@ -413,7 +413,7 @@ async function doUpload(file) {
   const fd = new FormData();
   fd.append('file', file);
   try {
-    const r = await fetch('/api/upload', { method: 'POST', body: fd });
+    const r = await fetch('api/upload', { method: 'POST', body: fd });
     if (!r.ok) { const e = await r.json(); throw new Error(e.error || r.statusText); }
     const d = await r.json();
     fileId = d.file_id;
@@ -457,7 +457,7 @@ bgInput.addEventListener('change', async () => {
   if (!bgInput.files[0]) return;
   const fd = new FormData(); fd.append('file', bgInput.files[0]);
   try {
-    const r = await fetch('/api/upload', { method: 'POST', body: fd });
+    const r = await fetch('api/upload', { method: 'POST', body: fd });
     const d = await r.json();
     bgFileId = d.file_id;
     document.getElementById('bgFileName').textContent = bgInput.files[0].name;
@@ -558,7 +558,7 @@ async function submitJob() {
   const btn = document.getElementById('runBtn');
   btn.disabled = true; btn.textContent = '送信中…';
   try {
-    const r = await fetch('/api/jobs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const r = await fetch('api/jobs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     if (!r.ok) { const e = await r.json(); throw new Error(e.error || r.statusText); }
     startPoll(); loadJobs();
   } catch(e) { alert('送信失敗: ' + e.message); }
@@ -626,7 +626,7 @@ function startPoll() {
 
 async function loadJobs() {
   try {
-    const r = await fetch('/api/jobs');
+    const r = await fetch('api/jobs');
     const jobs = await r.json();
     renderJobs(jobs);
     return jobs;
