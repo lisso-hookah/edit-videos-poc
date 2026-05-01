@@ -56,7 +56,7 @@ def execute(job: Job) -> None:
 
 
 def _find_output(work_dir: Path, pipeline: str) -> str | None:
-    step = {"pipeline": "render", "short": "vertical", "clip": "clip"}.get(pipeline, "render")
+    step = {"pipeline": "rendered", "short": "vertical", "clip": "clip"}.get(pipeline, "rendered")
     out_dir = work_dir / step
     if out_dir.exists():
         for f in sorted(out_dir.glob("*.mp4")):
