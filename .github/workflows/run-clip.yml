@@ -140,6 +140,8 @@ jobs:
             exit 1
           fi
           echo "Result size: $(du -sh $RESULT | cut -f1)"
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          UPLOADED=false
           for i in 1 2 3; do
             echo "Upload attempt $i..."
             curl -fL -X POST \
@@ -147,10 +149,19 @@ jobs:
               --max-time 600 \
               -H "X-Worker-Key: ${{ secrets.LOLLIPOP_WORKER_KEY }}" \
               -F "file=@$RESULT;type=video/mp4" \
-              "${{ inputs.lollipop_api_url }}/api/worker/jobs/${{ inputs.job_id }}/complete" && break
+              "${{ inputs.lollipop_api_url }}/api/worker/jobs/${{ inputs.job_id }}/complete" \
+              && UPLOADED=true && break
             echo "Attempt $i failed, retrying in 15s..."
             sleep 15
           done
+          if [ "$UPLOADED" = "false" ]; then
+            echo "Direct upload failed. Reporting artifact URL: $RUN_URL"
+            curl -s -X POST \
+              -H "X-Worker-Key: ${{ secrets.LOLLIPOP_WORKER_KEY }}" \
+              -H "Content-Type: application/json" \
+              -d "{\"artifact_url\":\"$RUN_URL\"}" \
+              "${{ inputs.lollipop_api_url }}/api/worker/jobs/${{ inputs.job_id }}/complete" || true
+          fi
 
       - name: Report failure to Lollipop
         if: ${{ failure() && inputs.lollipop_api_url != '' && inputs.job_id != '' }}
