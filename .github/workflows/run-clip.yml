@@ -133,10 +133,18 @@ jobs:
             echo "ERROR: 結果ファイルが見つかりません"
             exit 1
           fi
-          curl -fL -X POST \
-            -H "X-Worker-Key: ${{ secrets.LOLLIPOP_WORKER_KEY }}" \
-            -F "file=@$RESULT;type=video/mp4" \
-            "${{ inputs.lollipop_api_url }}/api/worker/jobs/${{ inputs.job_id }}/complete"
+          echo "Result size: $(du -sh $RESULT | cut -f1)"
+          for i in 1 2 3; do
+            echo "Upload attempt $i..."
+            curl -fL -X POST \
+              --connect-timeout 60 \
+              --max-time 600 \
+              -H "X-Worker-Key: ${{ secrets.LOLLIPOP_WORKER_KEY }}" \
+              -F "file=@$RESULT;type=video/mp4" \
+              "${{ inputs.lollipop_api_url }}/api/worker/jobs/${{ inputs.job_id }}/complete" && break
+            echo "Attempt $i failed, retrying in 15s..."
+            sleep 15
+          done
 
       - name: Report failure to Lollipop
         if: ${{ failure() && inputs.lollipop_api_url != '' && inputs.job_id != '' }}
