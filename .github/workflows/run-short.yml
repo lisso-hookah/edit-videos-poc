@@ -103,10 +103,16 @@ jobs:
       - name: Download video from Lollipop
         if: ${{ inputs.lollipop_api_url != '' && inputs.file_id != '' }}
         run: |
-          curl -fL \
-            -H "X-Worker-Key: ${{ secrets.LOLLIPOP_WORKER_KEY }}" \
-            "${{ inputs.lollipop_api_url }}/api/worker/uploads/${{ inputs.file_id }}" \
-            -o input_video.mp4
+          for i in 1 2 3; do
+            curl -fL \
+              --connect-timeout 60 \
+              --max-time 600 \
+              -H "X-Worker-Key: ${{ secrets.LOLLIPOP_WORKER_KEY }}" \
+              "${{ inputs.lollipop_api_url }}/api/worker/uploads/${{ inputs.file_id }}" \
+              -o input_video.mp4 && break
+            echo "Download attempt $i failed, retrying in 15s..."
+            sleep 15
+          done
           echo "VIDEO_PATH=input_video.mp4" >> "$GITHUB_ENV"
 
       - name: Download background image from Lollipop
