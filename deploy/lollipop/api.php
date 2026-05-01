@@ -18,8 +18,11 @@ define('RETENTION_DAYS', 7);
 define('STALE_HOURS',    3);
 
 // Lollipop 自身の URL（GHA が callback に使う）
-$_scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
-define('SELF_URL', $_scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost'));
+// SCRIPT_NAME でサブディレクトリを正確に把握する
+$_scheme  = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+$_dir     = dirname($_SERVER['SCRIPT_NAME'] ?? '/api.php');
+$_dir     = ($_dir === '/' || $_dir === '\\') ? '' : rtrim($_dir, '/');
+define('SELF_URL', $_scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . $_dir);
 
 // ── 初期化 ─────────────────────────────────────────────────────
 foreach ([JOBS_DIR, UPLOADS_DIR, RESULTS_DIR] as $dir) {
@@ -31,6 +34,11 @@ foreach ([JOBS_DIR, UPLOADS_DIR, RESULTS_DIR] as $dir) {
 // ── ルーティング ────────────────────────────────────────────────
 $method = $_SERVER['REQUEST_METHOD'];
 $uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+// サブディレクトリ配置に対応：スクリプトのディレクトリプレフィックスを除去してから /api を除去
+$_dir_len = strlen($_dir);
+if ($_dir_len > 0 && strpos($uri, $_dir) === 0) {
+    $uri = substr($uri, $_dir_len);
+}
 $uri    = '/' . ltrim(preg_replace('#^/api#', '', $uri), '/');
 
 if (mt_rand(0, 19) === 0) {
@@ -127,6 +135,8 @@ function handle_submit_job()
 
 function handle_list_jobs()
 {
+    header('Cache-Control: no-cache, no-store, must-revalidate');
+    header('Pragma: no-cache');
     $jobs = load_all_jobs();
     usort($jobs, function($a, $b) { return strcmp($b['created_at'], $a['created_at']); });
 
