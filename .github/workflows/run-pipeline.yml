@@ -135,7 +135,7 @@ jobs:
       - name: Upload result to Lollipop
         if: ${{ success() && inputs.lollipop_api_url != '' && inputs.job_id != '' }}
         run: |
-          RESULT=$(find output/render -name "*.mp4" | head -1)
+          RESULT=$(find output/rendered -name "*.mp4" | head -1)
           if [ -z "$RESULT" ]; then
             echo "ERROR: 結果ファイルが見つかりません"
             exit 1

@@ -14,6 +14,8 @@ _STYLE_FMT = "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, 
 _ASS_PREAMBLE = "[Script Info]\nScriptType: v4.00+\nWrapStyle: 1\nScaledBorderAndShadow: yes\nPlayResX: 1280\nPlayResY: 720\n\n[V4+ Styles]\n"
 _EVENTS_HEADER = "\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
 _MARGINS = "160,160,40"
+_PLAY_RES_X = 1280
+_MARGIN_LR = 160
 
 # English color name → ASS &HAABBGGRR& (AA=00 opaque)
 _COLOR_MAP: dict[str, str] = {
@@ -40,15 +42,25 @@ def color_to_ass(color: str) -> str:
     """Convert English color name or existing ASS code to ASS format."""
     return _COLOR_MAP.get(color.lower(), color)
 
-_MAX_CHARS = 18
+_JP_BREAK_CHARS = frozenset("、。！？…・,.")
 
 
-def _wrap_text(text: str) -> str:
-    """Hard-wrap text at _MAX_CHARS characters per line."""
+def _max_chars_for_font(font_size: int) -> int:
+    available = _PLAY_RES_X - 2 * _MARGIN_LR
+    return max(6, int(available / font_size * 0.85))
+
+
+def _wrap_text(text: str, max_chars: int) -> str:
+    """Wrap text at max_chars, preferring breaks after Japanese punctuation."""
     lines: list[str] = []
-    while len(text) > _MAX_CHARS:
-        lines.append(text[:_MAX_CHARS])
-        text = text[_MAX_CHARS:]
+    while len(text) > max_chars:
+        break_pos = max_chars
+        for i in range(max_chars, max(max_chars - 6, 0), -1):
+            if text[i - 1] in _JP_BREAK_CHARS:
+                break_pos = i
+                break
+        lines.append(text[:break_pos])
+        text = text[break_pos:]
     lines.append(text)
     return "\\N".join(lines)
 
@@ -128,11 +140,12 @@ def segments_to_ass(
                     f"Dialogue: 1,{start},{end},Inner,,0,0,0,,{text}",
                 ]
 
+    max_chars = _max_chars_for_font(font_size)
     events: list[str] = []
     for seg in segments:
         start = _td_to_ass(timedelta(seconds=seg.start))
         end = _td_to_ass(timedelta(seconds=seg.end))
-        text = _wrap_text(seg.text.strip())
+        text = _wrap_text(seg.text.strip(), max_chars)
         events.extend(make_events(start, end, text))
     out_path = config.step_dir("srt") / out_name
     out_path.write_text(header + "\n".join(events) + "\n", encoding="utf-8")

@@ -18,8 +18,11 @@ define('RETENTION_DAYS', 7);
 define('STALE_HOURS',    3);
 
 // Lollipop 自身の URL（GHA が callback に使う）
-$_scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
-define('SELF_URL', $_scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost'));
+// SCRIPT_NAME でサブディレクトリを正確に把握する
+$_scheme  = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+$_dir     = dirname($_SERVER['SCRIPT_NAME'] ?? '/api.php');
+$_dir     = ($_dir === '/' || $_dir === '\\') ? '' : rtrim($_dir, '/');
+define('SELF_URL', $_scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . $_dir);
 
 // ── 初期化 ─────────────────────────────────────────────────────
 foreach ([JOBS_DIR, UPLOADS_DIR, RESULTS_DIR] as $dir) {
@@ -31,6 +34,11 @@ foreach ([JOBS_DIR, UPLOADS_DIR, RESULTS_DIR] as $dir) {
 // ── ルーティング ────────────────────────────────────────────────
 $method = $_SERVER['REQUEST_METHOD'];
 $uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+// サブディレクトリ配置に対応：スクリプトのディレクトリプレフィックスを除去してから /api を除去
+$_dir_len = strlen($_dir);
+if ($_dir_len > 0 && strpos($uri, $_dir) === 0) {
+    $uri = substr($uri, $_dir_len);
+}
 $uri    = '/' . ltrim(preg_replace('#^/api#', '', $uri), '/');
 
 if (mt_rand(0, 19) === 0) {
@@ -56,7 +64,7 @@ json_response(['error' => 'Not Found'], 404);
 // ブラウザ向けハンドラ
 // ════════════════════════════════════════════════════════════════
 
-function handle_upload(): never
+function handle_upload()
 {
     if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
         json_response(['error' => 'ファイルのアップロードに失敗しました'], 400);
@@ -78,7 +86,7 @@ function handle_upload(): never
     json_response(['file_id' => $file_id, 'filename' => $file['name'], 'size' => $file['size'], 'ext' => $ext]);
 }
 
-function handle_submit_job(): never
+function handle_submit_job()
 {
     $body     = json_body();
     $pipeline = $body['pipeline'] ?? '';
@@ -125,12 +133,14 @@ function handle_submit_job(): never
     json_response(['job_id' => $job['id'], 'status' => $job['status'], 'mode' => $job['mode']], 201);
 }
 
-function handle_list_jobs(): never
+function handle_list_jobs()
 {
+    header('Cache-Control: no-cache, no-store, must-revalidate');
+    header('Pragma: no-cache');
     $jobs = load_all_jobs();
-    usort($jobs, fn($a, $b) => strcmp($b['created_at'], $a['created_at']));
+    usort($jobs, function($a, $b) { return strcmp($b['created_at'], $a['created_at']); });
 
-    $result = array_map(fn($j) => [
+    $result = array_map(function($j) { return [
         'id'             => $j['id'],
         'pipeline'       => $j['pipeline'],
         'status'         => $j['status'],
@@ -140,12 +150,12 @@ function handle_list_jobs(): never
         'has_result'     => file_exists(RESULTS_DIR . "/{$j['id']}.mp4"),
         'mode'           => $j['mode'] ?? 'worker',
         'created_at'     => $j['created_at'],
-    ], $jobs);
+    ]; }, $jobs);
 
     json_response($result);
 }
 
-function handle_download(string $job_id): never
+function handle_download(string $job_id)
 {
     $job = load_job($job_id);
     if ($job === null || $job['status'] !== 'done') {
@@ -169,7 +179,7 @@ function handle_download(string $job_id): never
 // Worker 向けハンドラ（GHA + ローカル Worker 共通）
 // ════════════════════════════════════════════════════════════════
 
-function worker_next_job(): never
+function worker_next_job()
 {
     recover_stale_jobs();
 
@@ -179,7 +189,7 @@ function worker_next_job(): never
     }
 
     $jobs = load_all_jobs();
-    usort($jobs, fn($a, $b) => strcmp($a['created_at'], $b['created_at']));
+    usort($jobs, function($a, $b) { return strcmp($a['created_at'], $b['created_at']); });
 
     $claimed = null;
     foreach ($jobs as $j) {
@@ -209,7 +219,7 @@ function worker_next_job(): never
     ]);
 }
 
-function worker_download_upload(string $file_id): never
+function worker_download_upload(string $file_id)
 {
     $upload = find_upload($file_id);
     if ($upload === null) {
@@ -227,7 +237,7 @@ function worker_download_upload(string $file_id): never
     exit;
 }
 
-function worker_update_progress(string $job_id): never
+function worker_update_progress(string $job_id)
 {
     $job = load_job($job_id);
     if ($job === null) {
@@ -242,7 +252,7 @@ function worker_update_progress(string $job_id): never
     json_response(['ok' => true]);
 }
 
-function worker_complete_job(string $job_id): never
+function worker_complete_job(string $job_id)
 {
     $job = load_job($job_id);
     if ($job === null) {
@@ -266,7 +276,7 @@ function worker_complete_job(string $job_id): never
     json_response(['ok' => true]);
 }
 
-function worker_fail_job(string $job_id): never
+function worker_fail_job(string $job_id)
 {
     $job = load_job($job_id);
     if ($job === null) {
@@ -390,7 +400,7 @@ function json_body(): array
     return json_decode($raw, true) ?? [];
 }
 
-function json_response(mixed $data, int $code = 200): never
+function json_response($data, int $code = 200)
 {
     http_response_code($code);
     header('Content-Type: application/json; charset=utf-8');

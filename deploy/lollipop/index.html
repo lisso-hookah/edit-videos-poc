@@ -354,6 +354,7 @@ header h1 { font-size: 17px; font-weight: 600; color: #fff; }
     <div class="jobs-header">
       <h2>ジョブ一覧</h2>
       <span class="badge-count" id="jobCount">0</span>
+      <button onclick="loadJobs()" style="margin-left:auto;padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--muted);font-size:12px;cursor:pointer" title="手動更新">↺</button>
     </div>
     <div id="jobsList">
       <div class="empty"><div class="empty-icon">🎞</div><div>まだジョブがありません</div></div>
@@ -413,7 +414,7 @@ async function doUpload(file) {
   const fd = new FormData();
   fd.append('file', file);
   try {
-    const r = await fetch('/api/upload', { method: 'POST', body: fd });
+    const r = await fetch('api/upload', { method: 'POST', body: fd });
     if (!r.ok) { const e = await r.json(); throw new Error(e.error || r.statusText); }
     const d = await r.json();
     fileId = d.file_id;
@@ -457,7 +458,7 @@ bgInput.addEventListener('change', async () => {
   if (!bgInput.files[0]) return;
   const fd = new FormData(); fd.append('file', bgInput.files[0]);
   try {
-    const r = await fetch('/api/upload', { method: 'POST', body: fd });
+    const r = await fetch('api/upload', { method: 'POST', body: fd });
     const d = await r.json();
     bgFileId = d.file_id;
     document.getElementById('bgFileName').textContent = bgInput.files[0].name;
@@ -558,7 +559,7 @@ async function submitJob() {
   const btn = document.getElementById('runBtn');
   btn.disabled = true; btn.textContent = '送信中…';
   try {
-    const r = await fetch('/api/jobs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const r = await fetch('api/jobs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     if (!r.ok) { const e = await r.json(); throw new Error(e.error || r.statusText); }
     startPoll(); loadJobs();
   } catch(e) { alert('送信失敗: ' + e.message); }
@@ -615,18 +616,20 @@ function gatherParams() {
 }
 
 // ── ジョブ一覧ポーリング ────────────────────────
+// GHAジョブは最大90分かかるためポーリング間隔を5秒に、完了/失敗のみで停止
+function isActive(j) { return j.status === 'queued' || j.status === 'running'; }
 function startPoll() {
   if (pollTimer) return;
   pollTimer = setInterval(() => {
     loadJobs().then(jobs => {
-      if (jobs && !jobs.some(j => j.status === 'queued' || j.status === 'running')) { clearInterval(pollTimer); pollTimer = null; }
+      if (jobs && !jobs.some(isActive)) { clearInterval(pollTimer); pollTimer = null; }
     });
-  }, 3000);
+  }, 5000);
 }
 
 async function loadJobs() {
   try {
-    const r = await fetch('/api/jobs');
+    const r = await fetch('api/jobs', { cache: 'no-store' });
     const jobs = await r.json();
     renderJobs(jobs);
     return jobs;
@@ -644,9 +647,11 @@ function jobCard(j) {
   const statusLabel = { queued:'待機中', running:'実行中', done:'完了', failed:'失敗' }[j.status] || j.status;
   const pct = j.progress;
   const barCls = j.status === 'done' ? 'done' : j.status === 'failed' ? 'failed' : '';
+  const modeTag = (j.mode === 'gha' && j.status === 'running')
+    ? ' <span style="font-size:10px;color:var(--muted);opacity:.8">(GitHub Actions)</span>' : '';
   let footRight = `<span class="job-pct">${pct}%</span>`;
   if (j.status === 'done' && j.has_result) {
-    footRight += ` <a class="dl-btn" href="/api/jobs/${j.id}/download" download="result.mp4">↓ ダウンロード</a>`;
+    footRight += ` <a class="dl-btn" href="api/jobs/${j.id}/download" download="result.mp4">↓ ダウンロード</a>`;
   }
   const errHtml = j.error ? `<div class="err-box">${esc(j.error.slice(0,400))}</div>` : '';
   const t = new Date(j.created_at).toLocaleTimeString('ja-JP', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
@@ -654,7 +659,7 @@ function jobCard(j) {
 <div class="job-card ${j.status}">
   <div class="job-top">
     <span class="badge badge-${j.status}">${statusLabel}</span>
-    <span class="job-name">${LABELS[j.pipeline] || j.pipeline}</span>
+    <span class="job-name">${LABELS[j.pipeline] || j.pipeline}${modeTag}</span>
     <span class="job-id">${j.id.slice(0,8)}</span>
     <span class="job-time">${t}</span>
   </div>
@@ -704,7 +709,7 @@ document.addEventListener('click', e => { if (e.target.closest('.preset-btn,.pos
 
 loadSettings();
 updatePreview();
-loadJobs().then(jobs => { if (jobs && jobs.some(j => j.status === 'queued' || j.status === 'running')) startPoll(); });
+loadJobs().then(jobs => { if (jobs && jobs.some(isActive)) startPoll(); });
 </script>
 </body>
 </html>
