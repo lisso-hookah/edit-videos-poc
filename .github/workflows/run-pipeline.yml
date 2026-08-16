@@ -53,6 +53,16 @@ on:
         default: "yellow"
         required: false
         type: string
+      subtitle_style:
+        description: "字幕スタイルプリセット (default / news / pop / karaoke / minimal / telop / neon)"
+        default: "default"
+        required: false
+        type: string
+      subtitle_position:
+        description: "字幕の位置 (bottom / top / middle / lower-third / upper-third)"
+        default: "bottom"
+        required: false
+        type: string
       thumbnail:
         description: "gpt-image-2 でサムネイル画像を生成する (OPENAI_API_KEY が必要)"
         default: "false"
@@ -124,6 +134,8 @@ jobs:
           ARGS="$ARGS --min-silence ${{ inputs.min_silence }}"
           ARGS="$ARGS --font \"$SUBTITLE_FONT\""
           ARGS="$ARGS --font-color \"${{ inputs.font_color }}\""
+          ARGS="$ARGS --subtitle-style \"${{ inputs.subtitle_style }}\""
+          ARGS="$ARGS --subtitle-position \"${{ inputs.subtitle_position }}\""
           if [ "${{ inputs.skip_refine }}" = "true" ]; then
             ARGS="$ARGS --skip-refine"
           fi

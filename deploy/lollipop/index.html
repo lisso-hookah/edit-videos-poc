@@ -5,380 +5,432 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Edit Videos</title>
 <style>
-:root {
-  --bg: #0d1117; --surface: #161b22; --surface2: #1c2128;
-  --border: #30363d; --text: #c9d1d9; --muted: #8b949e;
-  --accent: #58a6ff; --success: #3fb950; --error: #f85149;
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; min-height: 100vh; }
-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; gap: 10px; }
-header h1 { font-size: 17px; font-weight: 600; color: #fff; }
-
-.layout { max-width: 1100px; margin: 0 auto; padding: 28px 24px; display: grid; grid-template-columns: 420px 1fr; gap: 28px; }
-@media (max-width: 800px) { .layout { grid-template-columns: 1fr; } }
-
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
-.card-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 14px; }
-
-.drop-zone { border: 2px dashed var(--border); border-radius: 8px; padding: 36px 20px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; user-select: none; }
-.drop-zone:hover, .drop-zone.over { border-color: var(--accent); background: rgba(88,166,255,.05); }
-.drop-zone .icon { font-size: 32px; display: block; margin-bottom: 10px; }
-.drop-zone .hint { color: var(--muted); font-size: 12px; margin-top: 6px; }
-.drop-zone .prog { font-size: 12px; color: var(--accent); margin-top: 8px; display: none; }
-
-.file-pill { display: none; align-items: center; gap: 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-top: 10px; }
-.file-pill.show { display: flex; }
-.file-pill .name { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
-.file-pill .size { color: var(--muted); font-size: 12px; white-space: nowrap; }
-.file-pill .remove { cursor: pointer; color: var(--muted); font-size: 16px; }
-.file-pill .remove:hover { color: var(--error); }
-
-.tabs { display: flex; margin-top: 20px; border-bottom: 1px solid var(--border); }
-.tab-btn { flex: 1; padding: 9px 4px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--muted); cursor: pointer; font-size: 13px; font-weight: 500; transition: color .15s; margin-bottom: -1px; }
-.tab-btn:hover { color: var(--text); }
-.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
-
-.panel { padding: 18px 0 0; }
-.fg { margin-bottom: 14px; }
-.fg label { display: block; font-size: 12px; color: var(--muted); font-weight: 500; margin-bottom: 5px; }
-.fg label .req { color: var(--error); }
-.fg input[type=text], .fg input[type=number], .fg select { width: 100%; padding: 7px 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px; outline: none; transition: border-color .15s; }
-.fg input:focus, .fg select:focus { border-color: var(--accent); }
-.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.fg.check { display: flex; align-items: center; gap: 8px; }
-.fg.check label { margin: 0; color: var(--text); font-size: 13px; }
-.fg.check input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color: var(--accent); }
-
-.sub-upload { border: 1px dashed var(--border); border-radius: 6px; padding: 12px; text-align: center; cursor: pointer; font-size: 12px; color: var(--muted); transition: border-color .15s; }
-.sub-upload:hover { border-color: var(--accent); color: var(--text); }
-
-.run-btn { width: 100%; padding: 10px; margin-top: 6px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity .15s; }
-.run-btn:hover { opacity: .85; }
-.run-btn:disabled { opacity: .35; cursor: not-allowed; }
-
-.jobs-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-.jobs-header h2 { font-size: 15px; font-weight: 600; }
-.badge-count { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1px 8px; font-size: 12px; color: var(--muted); }
-
-.job-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
-.job-card.running { border-color: rgba(88,166,255,.4); }
-.job-card.done    { border-color: rgba(63,185,80,.3); }
-.job-card.failed  { border-color: rgba(248,81,73,.3); }
-
-.badge { padding: 2px 9px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; white-space: nowrap; }
-.badge-queued  { background: rgba(139,148,158,.15); color: var(--muted); }
-.badge-running { background: rgba(88,166,255,.15);  color: var(--accent); }
-.badge-done    { background: rgba(63,185,80,.15);   color: var(--success); }
-.badge-failed  { background: rgba(248,81,73,.15);   color: var(--error); }
-
-.job-top  { display: flex; align-items: center; gap: 10px; }
-.job-name { font-weight: 600; font-size: 13px; }
-.job-id   { font-family: monospace; font-size: 11px; color: var(--muted); }
-.job-time { font-size: 11px; color: var(--muted); margin-left: auto; white-space: nowrap; }
-.prog-wrap { height: 4px; background: var(--border); border-radius: 2px; margin: 10px 0 6px; overflow: hidden; }
-.prog-fill { height: 100%; border-radius: 2px; transition: width .5s ease; background: var(--accent); }
-.prog-fill.done   { background: var(--success); }
-.prog-fill.failed { background: var(--error); }
-.job-foot { display: flex; align-items: center; gap: 10px; }
-.job-lbl  { font-size: 12px; color: var(--muted); flex: 1; }
-.job-pct  { font-size: 12px; font-weight: 700; }
-.dl-btn { padding: 4px 12px; background: var(--success); color: #000; border: none; border-radius: 5px; font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: none; display: inline-block; }
-.dl-btn:hover { opacity: .85; }
-.err-box { margin-top: 10px; padding: 8px 10px; background: rgba(248,81,73,.08); border: 1px solid rgba(248,81,73,.2); border-radius: 6px; font-size: 12px; color: var(--error); white-space: pre-wrap; word-break: break-word; }
-.notice { background: rgba(88,166,255,.08); border: 1px solid rgba(88,166,255,.2); border-radius: 6px; padding: 10px 14px; font-size: 12px; color: var(--accent); margin-bottom: 14px; }
-.empty { text-align: center; color: var(--muted); padding: 48px 0; }
-.empty .empty-icon { font-size: 36px; margin-bottom: 12px; }
+:root{--bg:#0d1117;--surface:#161b22;--surface2:#1c2128;--surface3:#21262d;--border:#30363d;--text:#c9d1d9;--muted:#8b949e;--accent:#58a6ff;--success:#3fb950;--error:#f85149;--warn:#d29922}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;line-height:1.6;min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 22px;display:flex;align-items:center;gap:10px}
+header h1{font-size:16px;font-weight:600;color:#fff}
+.mode-badge{margin-left:auto;font-size:11px;padding:2px 9px;border-radius:10px;background:rgba(88,166,255,.12);border:1px solid rgba(88,166,255,.25);color:var(--accent)}
+.layout{max-width:1240px;margin:0 auto;padding:20px;display:grid;grid-template-columns:400px 1fr;gap:18px;align-items:start}
+@media(max-width:860px){.layout{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
+.card+.card{margin-top:12px}
+.card-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px}
+.drop-zone{border:2px dashed var(--border);border-radius:8px;padding:26px 14px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;user-select:none}
+.drop-zone:hover,.drop-zone.over{border-color:var(--accent);background:rgba(88,166,255,.05)}
+.dz-icon{font-size:26px;display:block;margin-bottom:7px}
+.dz-hint{color:var(--muted);font-size:12px;margin-top:4px}
+.dz-prog{font-size:12px;color:var(--accent);margin-top:5px;display:none}
+.file-pill{display:none;align-items:center;gap:9px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 11px;margin-top:9px}
+.file-pill.show{display:flex}
+.fp-name{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;font-size:13px}
+.fp-size{color:var(--muted);font-size:12px;white-space:nowrap}
+.fp-rm{cursor:pointer;color:var(--muted);font-size:18px;line-height:1}
+.fp-rm:hover{color:var(--error)}
+.pipeline-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:12px}
+.pipe-card{background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:9px 6px;cursor:pointer;text-align:center;transition:border-color .15s,background .15s;user-select:none}
+.pipe-card:hover{border-color:var(--muted)}
+.pipe-card.active{border-color:var(--accent);background:rgba(88,166,255,.08)}
+.pc-icon{font-size:18px;display:block;margin-bottom:3px}
+.pc-name{font-size:12px;font-weight:600;color:var(--text)}
+.pc-sub{font-size:10px;color:var(--muted);margin-top:1px;line-height:1.3}
+.panel{padding-top:14px}
+.fg{margin-bottom:11px}
+.fg label{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);font-weight:500;margin-bottom:4px}
+.req{color:var(--error)}
+.fg input[type=text],.fg input[type=number],.fg select{width:100%;padding:6px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none;transition:border-color .15s}
+.fg input:focus,.fg select:focus{border-color:var(--accent)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.chk{display:flex;align-items:center;gap:7px;margin-bottom:8px}
+.chk label{font-size:13px;color:var(--text);cursor:pointer}
+.chk input[type=checkbox]{width:14px;height:14px;cursor:pointer;accent-color:var(--accent)}
+.tip{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:50%;background:var(--surface3);border:1px solid var(--border);font-size:9px;color:var(--muted);cursor:default;position:relative;flex-shrink:0}
+.tip:hover::after{content:attr(data-tip);position:absolute;left:50%;transform:translateX(-50%);bottom:calc(100% + 5px);background:#000;color:#ccc;font-size:11px;padding:5px 8px;border-radius:5px;border:1px solid var(--border);white-space:normal;width:190px;z-index:99;line-height:1.4;pointer-events:none;font-weight:normal}
+.color-grid{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.clr-btn{width:24px;height:24px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform .1s,border-color .1s;flex-shrink:0}
+.clr-btn:hover{transform:scale(1.18)}
+.clr-btn.active{border-color:#fff;box-shadow:0 0 0 1px rgba(255,255,255,.35)}
+.style-chips{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:3px}
+.style-chip{border:1.5px solid var(--border);border-radius:6px;padding:5px 3px 4px;background:var(--surface2);cursor:pointer;text-align:center;transition:border-color .15s,background .15s}
+.style-chip:hover{border-color:var(--muted)}
+.style-chip.active{border-color:var(--accent);background:rgba(88,166,255,.1)}
+.sc-pre{font-size:14px;font-weight:bold;line-height:1;margin-bottom:3px;display:block}
+.sc-lbl{font-size:9px;color:var(--muted);display:block;line-height:1.2}
+.pos-screen{width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:6px;position:relative;overflow:hidden}
+.pos-screen.r16-9{aspect-ratio:16/9}
+.pos-screen.r9-16{aspect-ratio:9/16;max-width:76px}
+.pos-btn{position:absolute;left:50%;transform:translateX(-50%);background:rgba(88,166,255,.12);border:1px solid rgba(88,166,255,.25);border-radius:4px;padding:2px 10px;font-size:10px;color:var(--muted);cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
+.pos-btn:hover{background:rgba(88,166,255,.28);color:var(--text)}
+.pos-btn.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:700}
+.pos-btn[data-pos=top]{top:8%}
+.pos-btn[data-pos=upper-third]{top:25%}
+.pos-btn[data-pos=middle]{top:44%}
+.pos-btn[data-pos=lower-third]{top:63%}
+.pos-btn[data-pos=bottom]{top:80%}
+.sub-upload{border:1px dashed var(--border);border-radius:6px;padding:9px;text-align:center;cursor:pointer;font-size:12px;color:var(--muted);transition:border-color .15s}
+.sub-upload:hover{border-color:var(--accent);color:var(--text)}
+.run-btn{width:100%;padding:10px;margin-top:8px;background:var(--accent);color:#000;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s}
+.run-btn:hover{opacity:.85}
+.run-btn:disabled{opacity:.35;cursor:not-allowed}
+.pv-head{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.pv-title{font-size:13px;font-weight:600}
+.pv-note{font-size:11px;color:var(--muted);margin-left:auto}
+.pv-txt-row{display:flex;align-items:center;gap:7px;margin-bottom:8px}
+.pv-txt-row label{font-size:11px;color:var(--muted);white-space:nowrap}
+.pv-txt-row input{flex:1;padding:5px 7px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:12px;outline:none}
+.pv-txt-row input:focus{border-color:var(--accent)}
+.pv-wrap{width:100%;background:#000;border-radius:6px;overflow:hidden}
+.pv-wrap svg{display:block;width:100%;height:auto}
+.jobs-head{display:flex;align-items:center;gap:9px;margin:16px 0 9px}
+.jobs-head h2{font-size:14px;font-weight:600}
+.badge-count{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1px 8px;font-size:12px;color:var(--muted)}
+.job-card{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:11px 13px;margin-bottom:7px}
+.job-card.running{border-color:rgba(88,166,255,.4)}
+.job-card.done{border-color:rgba(63,185,80,.3)}
+.job-card.failed{border-color:rgba(248,81,73,.3)}
+.badge{padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;text-transform:uppercase}
+.badge-queued{background:rgba(139,148,158,.15);color:var(--muted)}
+.badge-running{background:rgba(88,166,255,.15);color:var(--accent)}
+.badge-done{background:rgba(63,185,80,.15);color:var(--success)}
+.badge-failed{background:rgba(248,81,73,.15);color:var(--error)}
+.gha-tag{font-size:10px;padding:1px 6px;border-radius:8px;background:rgba(210,153,34,.12);border:1px solid rgba(210,153,34,.25);color:var(--warn);margin-left:2px}
+.job-top{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.job-name{font-weight:600;font-size:13px}
+.job-id{font-family:monospace;font-size:11px;color:var(--muted)}
+.job-time{font-size:11px;color:var(--muted);margin-left:auto}
+.prog-wrap{height:3px;background:var(--border);border-radius:2px;margin:8px 0 5px;overflow:hidden}
+.prog-fill{height:100%;border-radius:2px;transition:width .5s;background:var(--accent)}
+.prog-fill.done{background:var(--success)}
+.prog-fill.failed{background:var(--error)}
+.job-foot{display:flex;align-items:center;gap:7px}
+.job-lbl{font-size:12px;color:var(--muted);flex:1}
+.job-pct{font-size:12px;font-weight:700}
+.dl-btn{padding:3px 10px;background:var(--success);color:#000;border:none;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block}
+.dl-btn:hover{opacity:.85}
+.err-box{margin-top:7px;padding:6px 9px;background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.2);border-radius:5px;font-size:12px;color:var(--error);white-space:pre-wrap;word-break:break-word}
+.empty{text-align:center;color:var(--muted);padding:38px 0}
+.empty-icon{font-size:30px;margin-bottom:9px}
 </style>
 </head>
 <body>
-
 <header>
-  <span style="font-size:22px">🎬</span>
+  <span style="font-size:19px">&#127916;</span>
   <h1>Edit Videos</h1>
+  <span class="mode-badge" id="modeBadge">GitHub Actions</span>
 </header>
-
 <div class="layout">
-
-  <!-- ── 左: アップロード & 設定 ── -->
-  <div>
-    <div class="card">
-      <div class="card-title">動画ファイル</div>
-      <div class="notice">処理はローカル Worker PC で実行されます。Worker が起動していないとジョブは待機します。</div>
-
-      <div class="drop-zone" id="dropZone">
-        <span class="icon">📂</span>
-        <div>ドラッグ＆ドロップ または クリックして選択</div>
-        <div class="hint">MP4 / MOV / WAV</div>
-        <div class="prog" id="uploadProg">アップロード中…</div>
-        <input type="file" id="fileInput" accept=".mp4,.mov,.wav" style="display:none">
-      </div>
-      <div class="file-pill" id="filePill">
-        <span style="font-size:18px">🎥</span>
-        <span class="name" id="fileName"></span>
-        <span class="size" id="fileSize"></span>
-        <span class="remove" id="removeFile" title="削除">×</span>
-      </div>
-
-      <div class="tabs">
-        <button class="tab-btn active" data-p="pipeline">Video</button>
-        <button class="tab-btn" data-p="short">Short</button>
-        <button class="tab-btn" data-p="clip">Clip</button>
-      </div>
-
-      <!-- Video Pipeline -->
-      <div class="panel" id="panel-pipeline">
-        <div class="row2">
-          <div class="fg"><label>言語</label>
-            <select id="p-lang"><option value="ja" selected>ja（日本語）</option><option value="en">en（English）</option><option value="zh">zh（中文）</option><option value="ko">ko（한국어）</option></select></div>
-          <div class="fg"><label>Whisper モデル</label>
-            <select id="p-whisper"><option value="tiny">tiny（最速）</option><option value="base">base</option><option value="small">small</option><option value="medium" selected>medium（推奨）</option><option value="large-v3">large-v3（高精度）</option></select></div>
-        </div>
-        <div class="row2">
-          <div class="fg"><label>字幕カラー</label>
-            <select id="p-color"><option value="yellow" selected>yellow（黄）</option><option value="white">white（白）</option><option value="red">red（赤）</option><option value="blue">blue（青）</option><option value="green">green（緑）</option><option value="orange">orange（橙）</option><option value="black">black（黒）</option></select></div>
-          <div class="fg"><label>無音閾値 (dB)</label><input type="number" id="p-noisedb" value="-30"></div>
-        </div>
-        <div class="row2">
-          <div class="fg"><label>最小無音長 (秒)</label><input type="number" id="p-minsilence" value="0.5" step="0.1"></div>
-          <div></div>
-        </div>
-        <div class="row2">
-          <div class="fg check"><input type="checkbox" id="p-skiprefine"><label for="p-skiprefine">Gemini 除去スキップ</label></div>
-          <div class="fg check"><input type="checkbox" id="p-thumbnail"><label for="p-thumbnail">サムネイル生成</label></div>
-        </div>
-      </div>
-
-      <!-- Short Pipeline -->
-      <div class="panel" id="panel-short" style="display:none">
-        <div class="row2">
-          <div class="fg"><label>言語</label>
-            <select id="s-lang"><option value="ja" selected>ja（日本語）</option><option value="en">en（English）</option><option value="zh">zh（中文）</option><option value="ko">ko（한국어）</option></select></div>
-          <div class="fg"><label>Whisper モデル</label>
-            <select id="s-whisper"><option value="tiny">tiny</option><option value="base">base</option><option value="small">small</option><option value="medium" selected>medium（推奨）</option><option value="large-v3">large-v3</option></select></div>
-        </div>
-        <div class="row2">
-          <div class="fg"><label>字幕カラー</label>
-            <select id="s-color"><option value="yellow" selected>yellow（黄）</option><option value="white">white（白）</option><option value="red">red（赤）</option><option value="blue">blue（青）</option><option value="green">green（緑）</option><option value="orange">orange（橙）</option><option value="black">black（黒）</option></select></div>
-          <div class="fg"><label>背景タイプ</label>
-            <select id="s-bgtype" onchange="refreshBgOpts()"><option value="blur" selected>blur（動画ぼかし）</option><option value="color">color（単色）</option><option value="image">image（静止画ぼかし）</option></select></div>
-        </div>
-        <div id="s-blur-row"><div class="fg"><label>ぼかし強度</label><input type="number" id="s-blursigma" value="40"></div></div>
-        <div id="s-color-row" style="display:none"><div class="fg"><label>背景色</label>
-          <select id="s-bgcolor"><option value="black" selected>black（黒）</option><option value="white">white（白）</option><option value="gray">gray（グレー）</option><option value="navy">navy（紺）</option></select></div></div>
-        <div id="s-image-row" style="display:none">
-          <div class="fg"><label>背景画像</label>
-            <div class="sub-upload" id="bgDropZone">クリックして背景画像を選択（JPG / PNG）<input type="file" id="bgInput" accept=".jpg,.jpeg,.png" style="display:none"></div>
-            <div style="font-size:12px;color:var(--muted);margin-top:5px" id="bgFileName">未選択</div></div>
-        </div>
-        <div class="fg check"><input type="checkbox" id="s-skiprefine"><label for="s-skiprefine">Gemini 除去スキップ</label></div>
-      </div>
-
-      <!-- Clip -->
-      <div class="panel" id="panel-clip" style="display:none">
-        <div class="row2">
-          <div class="fg"><label>開始時間 <span class="req">*</span></label><input type="text" id="c-start" placeholder="秒 または HH:MM:SS"></div>
-          <div class="fg"><label>終了時間</label><input type="text" id="c-end" placeholder="空白で末尾まで"></div>
-        </div>
-        <div class="row2">
-          <div class="fg"><label>上部テキスト</label><input type="text" id="c-top" placeholder="省略可"></div>
-          <div class="fg"><label>下部テキスト</label><input type="text" id="c-bottom" placeholder="省略可"></div>
-        </div>
-        <div class="row2">
-          <div class="fg"><label>テキストカラー</label>
-            <select id="c-tcolor"><option value="white" selected>white（白）</option><option value="yellow">yellow（黄）</option><option value="red">red（赤）</option><option value="orange">orange（橙）</option><option value="black">black（黒）</option></select></div>
-          <div class="fg"><label>フォントサイズ</label><input type="number" id="c-fontsize" value="108"></div>
-        </div>
-      </div>
-
-      <button class="run-btn" id="runBtn" disabled onclick="submitJob()">実行する</button>
+<div>
+  <div class="card">
+    <div class="card-title">&#21205;&#30011;&#12501;&#12449;&#12452;&#12523;</div>
+    <div class="drop-zone" id="dropZone">
+      <span class="dz-icon">&#128194;</span>
+      <div>&#12489;&#12521;&#12483;&#12464;&#65286;&#12489;&#12525;&#12483;&#12503; &#12414;&#12383;&#12399; &#12463;&#12522;&#12483;&#12463;&#12375;&#12390;&#36984;&#25246;</div>
+      <div class="dz-hint">MP4 / MOV / WAV</div>
+      <div class="dz-prog" id="uploadProg">&#12450;&#12483;&#12503;&#12525;&#12540;&#12489;&#20013;&#8230;</div>
+      <input type="file" id="fileInput" accept=".mp4,.mov,.wav,.mp3,.m4a" style="display:none">
+    </div>
+    <div class="file-pill" id="filePill">
+      <span style="font-size:16px">&#127909;</span>
+      <span class="fp-name" id="fileName"></span>
+      <span class="fp-size" id="fileSize"></span>
+      <span class="fp-rm" id="removeFile">&#215;</span>
+    </div>
+    <div class="pipeline-cards">
+      <div class="pipe-card active" data-p="pipeline"><span class="pc-icon">&#127902;</span><div class="pc-name">Video</div><div class="pc-sub">&#23383;&#24149;&#20184;&#12365;&#27494;&#21205;&#30011;</div></div>
+      <div class="pipe-card" data-p="short"><span class="pc-icon">&#128241;</span><div class="pc-name">Short</div><div class="pc-sub">&#32302;&#22411; 9:16 &#22793;&#25563;</div></div>
+      <div class="pipe-card" data-p="clip"><span class="pc-icon">&#9986;&#65039;</span><div class="pc-name">Clip</div><div class="pc-sub">&#31684;&#22258;&#20999;&#12426;&#25975;&#12365;</div></div>
     </div>
   </div>
-
-  <!-- ── 右: ジョブ一覧 ── -->
-  <div>
-    <div class="jobs-header">
-      <h2>ジョブ一覧</h2>
-      <span class="badge-count" id="jobCount">0</span>
+  <div class="card">
+    <div class="card-title" id="settingsTitle">Video Pipeline &#35373;&#23450;</div>
+    <div class="panel" id="panel-pipeline">
+      <div class="row2">
+        <div class="fg"><label>&#35328;&#35486;</label><select id="p-lang"><option value="ja" selected>ja&#65288;&#26085;&#26412;&#35486;&#65289;</option><option value="en">en</option><option value="zh">zh</option><option value="ko">ko</option></select></div>
+        <div class="fg"><label>Whisper <span class="tip" data-tip="large-v3&#12364;&#26368;&#39640;&#31934;&#24230;&#12290;medium&#12364;&#36895;&#24230;&#12392;&#12398;&#12496;&#12521;&#12531;&#12473;">?</span></label><select id="p-whisper"><option value="tiny">tiny</option><option value="base">base</option><option value="small">small</option><option value="medium" selected>medium&#65288;&#25512;&#25968;&#65289;</option><option value="large-v3">large-v3</option></select></div>
+      </div>
+      <div class="fg"><label>&#23383;&#24149;&#12473;&#12479;&#12452;&#12523; <span class="tip" data-tip="&#32255;&#21462;&#12426;&#12539;&#24459;&#12539;&#24115;&#12394;&#12393;&#23383;&#24149;&#12398;&#35211;&#12383;&#30446;&#12503;&#12522;&#12475;&#12483;&#12488;&#12290;&#12481;&#12483;&#12503;&#12398;&#12354;&#12364;&#12452;&#12513;&#12540;&#12472;&#12391;&#12377;">?</span></label><div class="style-chips" id="p-sc"></div></div>
+      <div class="fg"><label>&#23383;&#24149;&#12459;&#12521;&#12540;</label><div class="color-grid" id="p-cg"></div></div>
+      <div class="fg"><label>&#23383;&#24149;&#12398;&#20301;&#32622; <span class="tip" data-tip="&#21205;&#30011;&#12398;&#12393;&#12398;&#39640;&#12373;&#12395;&#23383;&#24149;&#12434;&#34920;&#31034;&#12377;&#12427;&#304B;&#12434;&#36984;&#25246;">?</span></label>
+        <div class="pos-screen r16-9" id="p-ps">
+          <button class="pos-btn" data-pos="top">&#19978;&#37096;</button>
+          <button class="pos-btn" data-pos="upper-third">&#19978; 1/3</button>
+          <button class="pos-btn" data-pos="middle">&#20013;&#22830;</button>
+          <button class="pos-btn" data-pos="lower-third">&#19979; 1/3</button>
+          <button class="pos-btn active" data-pos="bottom">&#19979;&#37096;</button>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="fg"><label>&#28961;&#38899;&#38750;&#20998; (dB) <span class="tip" data-tip="&#12371;&#12398;&#20516;&#20197;&#19979;&#12434;&#28961;&#38899;&#12392;&#21028;&#23450;&#12290;&#8722;30 &#12364;&#27161;&#28575;">?</span></label><input type="number" id="p-noisedb" value="-30"></div>
+        <div class="fg"><label>&#26368;&#23567;&#28961;&#38899;&#38263; (&#31186;)</label><input type="number" id="p-minsilence" value="0.5" step="0.1" min="0.1"></div>
+      </div>
+      <div class="row2">
+        <div class="chk"><input type="checkbox" id="p-skiprefine"><label for="p-skiprefine">Gemini &#12473;&#12461;&#12483;&#12503;</label></div>
+        <div class="chk"><input type="checkbox" id="p-thumbnail"><label for="p-thumbnail">&#12469;&#12512;&#12493;&#12452;&#12523;&#29983;&#25104;</label></div>
+      </div>
     </div>
-    <div id="jobsList">
-      <div class="empty"><div class="empty-icon">🎞</div><div>まだジョブがありません</div></div>
+    <div class="panel" id="panel-short" style="display:none">
+      <div class="row2">
+        <div class="fg"><label>&#35328;&#35486;</label><select id="s-lang"><option value="ja" selected>ja</option><option value="en">en</option><option value="zh">zh</option><option value="ko">ko</option></select></div>
+        <div class="fg"><label>Whisper</label><select id="s-whisper"><option value="tiny">tiny</option><option value="base">base</option><option value="small">small</option><option value="medium" selected>medium</option><option value="large-v3">large-v3</option></select></div>
+      </div>
+      <div class="fg"><label>&#23383;&#24149;&#12473;&#12479;&#12452;&#12523;</label><div class="style-chips" id="s-sc"></div></div>
+      <div class="fg"><label>&#23383;&#24149;&#12459;&#12521;&#12540;</label><div class="color-grid" id="s-cg"></div></div>
+      <div class="fg"><label>&#23383;&#24149;&#12398;&#20301;&#32622;</label>
+        <div class="pos-screen r9-16" id="s-ps">
+          <button class="pos-btn" data-pos="top">&#19978;</button>
+          <button class="pos-btn" data-pos="upper-third">&#19978;1/3</button>
+          <button class="pos-btn" data-pos="middle">&#20013;</button>
+          <button class="pos-btn" data-pos="lower-third">&#19979;1/3</button>
+          <button class="pos-btn active" data-pos="bottom">&#19979;</button>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="fg"><label>&#32972;&#26666;&#12479;&#12452;&#12503;</label><select id="s-bgtype"><option value="blur" selected>blur&#65288;&#12412;&#304B;&#12375;&#65289;</option><option value="color">color&#65288;&#21333;&#33ắc;&#65289;</option><option value="image">image&#65288;&#38745;&#27490;&#30011;&#65289;</option></select></div>
+        <div class="fg" id="s-sigma-wrap"><label>&#12412;&#304B;&#12375;&#24375;&#24230;</label><input type="number" id="s-blursigma" value="40" min="0" max="100"></div>
+      </div>
+      <div class="fg" id="s-col-wrap" style="display:none"><label>&#32972;&#26666;&#33ắc;</label><select id="s-bgcolor"><option value="black" selected>black</option><option value="white">white</option><option value="gray">gray</option><option value="navy">navy</option><option value="#1a1a2e">&#12480;&#12540;&#12463;&#12502;&#12523;&#12540;</option></select></div>
+      <div class="fg" id="s-img-wrap" style="display:none"><label>&#32972;&#26666;&#30011;&#20687;</label>
+        <div class="sub-upload" id="bgDrop">&#12463;&#12522;&#12483;&#12463;&#12375;&#12390;&#32972;&#26666;&#30011;&#20687;&#12434;&#36984;&#25246;&#65288;JPG / PNG&#65289;<input type="file" id="bgInput" accept=".jpg,.jpeg,.png" style="display:none"></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px" id="bgFileName">&#26410;&#36984;&#25246;</div>
+      </div>
+      <div class="chk"><input type="checkbox" id="s-skiprefine"><label for="s-skiprefine">Gemini &#12473;&#12461;&#12483;&#12503;</label></div>
+    </div>
+    <div class="panel" id="panel-clip" style="display:none">
+      <div class="row2">
+        <div class="fg"><label>&#38283;&#22987;&#26178;&#38291; <span class="req">*</span></label><input type="text" id="c-start" placeholder="&#31186; &#12414;&#12383;&#12399; HH:MM:SS"></div>
+        <div class="fg"><label>&#32066;&#20102;&#26178;&#38291;</label><input type="text" id="c-end" placeholder="&#31354;&#30333;&#12391;&#26411;&#23614;&#12414;&#12391;"></div>
+      </div>
+      <div class="row2">
+        <div class="fg"><label>&#19978;&#37096;&#12486;&#12461;&#12473;&#12488;</label><input type="text" id="c-top" placeholder="&#30465;&#30053;&#21487;"></div>
+        <div class="fg"><label>&#19979;&#37096;&#12486;&#12461;&#12473;&#12488;</label><input type="text" id="c-bottom" placeholder="&#30465;&#30053;&#21487;"></div>
+      </div>
+      <div class="row2">
+        <div class="fg"><label>&#12486;&#12461;&#12473;&#12488;&#12459;&#12521;&#12540;</label><div class="color-grid" id="c-cg"></div></div>
+        <div class="fg"><label>&#12501;&#12457;&#12531;&#12488;&#12469;&#12452;&#12474; <span class="tip" data-tip="1920x1080&#22522;&#28310;&#12391; 80&#12289;120 &#31243;&#24230;&#12364;&#30446;&#23041;">?</span></label><input type="number" id="c-fontsize" value="108" min="20" max="300"></div>
+      </div>
+    </div>
+    <button class="run-btn" id="runBtn" disabled>&#23455;&#34892;&#12377;&#12427;</button>
+  </div>
+</div>
+<div>
+  <div class="card">
+    <div class="pv-head">
+      <div class="pv-title">&#128444; &#20986;&#21147;&#12452;&#12513;&#12540;&#12472;</div>
+      <div class="pv-note">&#12473;&#12479;&#12452;&#12523;&#12539;&#20301;&#32622;&#12539;&#12459;&#12521;&#12540;&#12398;&#21442;&#32771;&#12452;&#12513;&#12540;&#12472;&#12391;&#12377;</div>
+    </div>
+    <div class="pv-txt-row" id="pvTxtRow">
+      <label>&#12469;&#12531;&#12503;&#12523;&#12486;&#12461;&#12473;&#12488;</label>
+      <input type="text" id="pvText" value="&#12469;&#12531;&#12503;&#12523;&#23383;&#24149;&#12486;&#12461;&#12473;&#12488;&#12391;&#12377;">
+    </div>
+    <div class="pv-wrap" id="pvWrap">
+      <svg id="pvSvg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" viewBox="0 0 320 180" style="display:block;width:100%;height:auto"></svg>
     </div>
   </div>
-
-</div><!-- /layout -->
-
+  <div class="jobs-head">
+    <h2>&#12472;&#12519;&#12502;&#19968;&#35235;</h2>
+    <span class="badge-count" id="jobCount">0</span>
+    <button onclick="loadJobs()" style="margin-left:auto;background:none;border:1px solid var(--border);color:var(--muted);border-radius:5px;padding:3px 10px;cursor:pointer;font-size:12px">&#8635; &#26356;&#26032;</button>
+  </div>
+  <div id="jobsList"><div class="empty"><div class="empty-icon">&#127902;</div><div>&#12414;&#12384;&#12472;&#12519;&#12502;&#12364;&#12354;&#12426;&#12414;&#12379;&#12435;</div></div></div>
+</div>
+</div>
 <script>
-const LABELS = { pipeline: 'Video Pipeline', short: 'Short Video', clip: 'Clip Video' };
-let currentPipeline = 'pipeline';
-let fileId = null;
-let bgFileId = null;
-let pollTimer = null;
-
-// ── アップロード ──────────────────────────────────────
-const dropZone  = document.getElementById('dropZone');
-const fileInput = document.getElementById('fileInput');
-
-dropZone.addEventListener('click', () => fileInput.click());
-dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('over'); });
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
-dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('over'); if (e.dataTransfer.files[0]) doUpload(e.dataTransfer.files[0]); });
-fileInput.addEventListener('change', () => { if (fileInput.files[0]) doUpload(fileInput.files[0]); });
-document.getElementById('removeFile').addEventListener('click', () => {
-  fileId = null;
-  document.getElementById('filePill').classList.remove('show');
-  document.getElementById('runBtn').disabled = true;
-  fileInput.value = '';
-});
-
-async function doUpload(file) {
-  document.getElementById('uploadProg').style.display = 'block';
-  dropZone.style.opacity = '.5';
-  const fd = new FormData();
-  fd.append('file', file);
-  try {
-    const r = await fetch('/api/upload', { method: 'POST', body: fd });
-    if (!r.ok) { const e = await r.json(); throw new Error(e.error || r.statusText); }
-    const d = await r.json();
-    fileId = d.file_id;
-    document.getElementById('fileName').textContent = file.name;
-    document.getElementById('fileSize').textContent = fmtSize(file.size);
-    document.getElementById('filePill').classList.add('show');
-    document.getElementById('runBtn').disabled = false;
-  } catch(e) { alert('アップロード失敗: ' + e.message); }
-  document.getElementById('uploadProg').style.display = 'none';
-  dropZone.style.opacity = '1';
-}
-
-// 背景画像
-const bgDropZone = document.getElementById('bgDropZone');
-const bgInput    = document.getElementById('bgInput');
-bgDropZone.addEventListener('click', () => bgInput.click());
-bgInput.addEventListener('change', async () => {
-  if (!bgInput.files[0]) return;
-  const fd = new FormData(); fd.append('file', bgInput.files[0]);
-  try {
-    const r = await fetch('/api/upload', { method: 'POST', body: fd });
-    const d = await r.json();
-    bgFileId = d.file_id;
-    document.getElementById('bgFileName').textContent = bgInput.files[0].name;
-  } catch(e) { alert('背景画像アップロード失敗: ' + e.message); }
-});
-
-function refreshBgOpts() {
-  const t = document.getElementById('s-bgtype').value;
-  document.getElementById('s-blur-row').style.display  = t !== 'color' ? '' : 'none';
-  document.getElementById('s-color-row').style.display = t === 'color' ? '' : 'none';
-  document.getElementById('s-image-row').style.display = t === 'image' ? '' : 'none';
-}
-
-// ── タブ ──────────────────────────────────────
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    currentPipeline = btn.dataset.p;
-    ['pipeline','short','clip'].forEach(p =>
-      document.getElementById('panel-' + p).style.display = p === currentPipeline ? '' : 'none'
-    );
+'use strict';
+const PIPE_LABELS={pipeline:'Video Pipeline',short:'Short Video',clip:'Clip Video'};
+const COLORS={yellow:'#ffff00',white:'#ffffff',red:'#ff4444',blue:'#4499ff',green:'#44ff88',cyan:'#00ffff',magenta:'#ff44ff',orange:'#ff8800',pink:'#ff99bb',black:'#111111'};
+const STYLES={
+  default:{label:'デフォルト',chip:'黄+縁',usePrimary:true,fill:'#ffff00',stroke:'#fff',sw:4,outerS:'#000',osw:8,bold:false,box:false,glow:false,shadow:false},
+  news:   {label:'ニュース',      chip:'白+影',usePrimary:false,fill:'#ffffff',stroke:'#000',sw:1.5,outerS:null,osw:0,bold:false,box:false,glow:false,shadow:true},
+  pop:    {label:'ポップ',             chip:'極太縁',usePrimary:false,fill:'#ffffff',stroke:'#000',sw:6,outerS:null,osw:0,bold:true,box:false,glow:false,shadow:false},
+  karaoke:{label:'カラオケ',       chip:'黄+青縁',usePrimary:true,fill:'#ffff00',stroke:'#0055ff',sw:5,outerS:null,osw:0,bold:true,box:false,glow:false,shadow:true},
+  minimal:{label:'ミニマル',       chip:'細縁',usePrimary:false,fill:'#ffffff',stroke:'#000',sw:1,outerS:null,osw:0,bold:false,box:false,glow:false,shadow:false},
+  telop:  {label:'テロップ',       chip:'黒帯',usePrimary:false,fill:'#ffffff',stroke:null,sw:0,outerS:null,osw:0,bold:true,box:true,glow:false,shadow:false},
+  neon:   {label:'ネオン',             chip:'発光',usePrimary:false,fill:'#00ffff',stroke:'#ff00ff',sw:2,outerS:null,osw:0,bold:true,box:false,glow:true,shadow:false},
+};
+const POSITIONS={
+  top:          {label:'上部',   yF:0.13,yFs:0.10},
+  'upper-third':{label:'上 1/3',    yF:0.28,yFs:0.27},
+  middle:       {label:'中央',   yF:0.50,yFs:0.50},
+  'lower-third':{label:'下 1/3',    yF:0.72,yFs:0.73},
+  bottom:       {label:'下部',   yF:0.87,yFs:0.90},
+};
+const S={pipeline:'pipeline',fileId:null,bgFileId:null,lang:'ja',whisper:'medium',fontColor:'yellow',subtitleStyle:'default',subtitlePosition:'bottom',noiseDb:-30,minSilence:0.5,skipRefine:false,thumbnail:false,bgType:'blur',bgColor:'black',blurSigma:40,sSkipRefine:false,startTime:'',endTime:'',topText:'',bottomText:'',textColor:'white',fontSize:108,pvText:'サンプル字幕テキストです'};
+const PREF_KEYS=['lang','whisper','fontColor','subtitleStyle','subtitlePosition','noiseDb','minSilence','bgType','bgColor','blurSigma'];
+function loadPrefs(){try{const p=JSON.parse(localStorage.getItem('evp_v2')||'{}');PREF_KEYS.forEach(k=>{if(p[k]!==undefined)S[k]=p[k];});}catch(_){}}
+function savePrefs(){const p={};PREF_KEYS.forEach(k=>p[k]=S[k]);try{localStorage.setItem('evp_v2',JSON.stringify(p));}catch(_){}}
+function buildStyleChips(cid){
+  const el=document.getElementById(cid);
+  Object.entries(STYLES).forEach(([key,sp])=>{
+    const btn=document.createElement('button');
+    btn.className='style-chip'+(S.subtitleStyle===key?' active':'');
+    btn.dataset.style=key;
+    const pre=document.createElement('span');pre.className='sc-pre';pre.textContent='あ';applyChipStyle(pre,sp,S.fontColor);
+    const lbl=document.createElement('span');lbl.className='sc-lbl';lbl.textContent=sp.label;
+    btn.appendChild(pre);btn.appendChild(lbl);
+    btn.addEventListener('click',()=>{S.subtitleStyle=key;document.querySelectorAll('.style-chip').forEach(b=>b.classList.toggle('active',b.dataset.style===key));refreshChips();savePrefs();renderPreview();});
+    el.appendChild(btn);
   });
-});
-
-// ── 送信 ──────────────────────────────────────
-async function submitJob() {
-  if (!fileId) return;
-  const params = gatherParams();
-  if (params === null) return;
-
-  const body = { pipeline: currentPipeline, file_id: fileId, params };
-
-  const btn = document.getElementById('runBtn');
-  btn.disabled = true; btn.textContent = '送信中…';
-  try {
-    const r = await fetch('/api/jobs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    if (!r.ok) { const e = await r.json(); throw new Error(e.error || r.statusText); }
-    startPoll(); loadJobs();
-  } catch(e) { alert('送信失敗: ' + e.message); }
-  btn.disabled = false; btn.textContent = '実行する';
 }
-
-function gatherParams() {
-  const v = id => document.getElementById(id).value;
-  const chk = id => document.getElementById(id).checked;
-  if (currentPipeline === 'pipeline') return { language: v('p-lang'), whisper_model: v('p-whisper'), font_color: v('p-color'), noise_db: parseFloat(v('p-noisedb')), min_silence: parseFloat(v('p-minsilence')), skip_refine: chk('p-skiprefine'), thumbnail: chk('p-thumbnail') };
-  if (currentPipeline === 'short') {
-    const bgType = v('s-bgtype');
-    const p = { language: v('s-lang'), whisper_model: v('s-whisper'), font_color: v('s-color'), skip_refine: chk('s-skiprefine') };
-    if (bgType !== 'color') p.blur_sigma = parseInt(v('s-blursigma'));
-    if (bgType === 'color') p.bg_color = v('s-bgcolor');
-    if (bgType === 'image' && bgFileId) p.bg_file_id = bgFileId;
-    return p;
+function applyChipStyle(el,sp,ck){
+  const fill=sp.usePrimary?(COLORS[ck]||sp.fill):sp.fill;
+  el.style.cssText='';el.style.color=fill;el.style.fontWeight=sp.bold?'bold':'normal';
+  if(sp.box){el.style.background='rgba(0,0,0,.72)';el.style.padding='0 2px';}
+  else if(sp.glow){el.style.textShadow=`0 0 4px ${sp.stroke},0 0 9px ${sp.stroke}`;}
+  else if(sp.shadow){el.style.textShadow=sp.stroke?`1px 1px 2px ${sp.stroke}`:'1px 2px 3px rgba(0,0,0,.9)';}
+  else if(sp.outerS){el.style.textShadow=`-1px -1px 0 ${sp.stroke},1px -1px 0 ${sp.stroke},-1px 1px 0 ${sp.stroke},1px 1px 0 ${sp.stroke}`;}
+  else if(sp.stroke&&sp.sw>=4){const c=sp.stroke;el.style.textShadow=`-1px -1px 0 ${c},1px -1px 0 ${c},-1px 1px 0 ${c},1px 1px 0 ${c}`;}
+}
+function refreshChips(){document.querySelectorAll('.sc-pre').forEach(el=>{const chip=el.closest('.style-chip');if(!chip)return;const sp=STYLES[chip.dataset.style];if(!sp)return;applyChipStyle(el,sp,S.fontColor);});}
+function buildColorGrid(cid,sk){
+  const el=document.getElementById(cid);
+  Object.entries(COLORS).forEach(([name,hex])=>{
+    const btn=document.createElement('button');btn.className='clr-btn'+(S[sk]===name?' active':'');btn.title=name;btn.dataset.color=name;btn.style.background=hex;if(name==='black')btn.style.border='2px solid #555';
+    btn.addEventListener('click',()=>{S[sk]=name;document.querySelectorAll(`#${cid} .clr-btn`).forEach(b=>b.classList.toggle('active',b.dataset.color===name));if(sk==='fontColor')refreshChips();savePrefs();renderPreview();});
+    el.appendChild(btn);
+  });
+}
+function buildPosBtns(sid){
+  document.querySelectorAll(`#${sid} .pos-btn`).forEach(btn=>{
+    btn.classList.toggle('active',btn.dataset.pos===S.subtitlePosition);
+    btn.addEventListener('click',()=>{S.subtitlePosition=btn.dataset.pos;document.querySelectorAll('.pos-btn').forEach(b=>b.classList.toggle('active',b.dataset.pos===S.subtitlePosition));savePrefs();renderPreview();});
+  });
+}
+const NS='http://www.w3.org/2000/svg';
+function mk(tag,attrs){const e=document.createElementNS(NS,tag);if(attrs)Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,String(v)));return e;}
+function renderPreview(){
+  const svg=document.getElementById('pvSvg');
+  const isShort=S.pipeline==='short',isClip=S.pipeline==='clip';
+  const W=isShort?180:320,H=isShort?320:180;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  document.getElementById('pvTxtRow').style.display=isClip?'none':'';
+  while(svg.firstChild)svg.removeChild(svg.firstChild);
+  const defs=mk('defs');
+  const fGlow=mk('filter',{id:'glow',x:'-40%',y:'-40%',width:'180%',height:'180%'});
+  const fb1=mk('feGaussianBlur',{in:'SourceGraphic',stdDeviation:'2.5',result:'b1'});
+  const fb2=mk('feGaussianBlur',{in:'SourceGraphic',stdDeviation:'6',result:'b2'});
+  const fm=mk('feMerge');
+  [mk('feMergeNode',{in:'b2'}),mk('feMergeNode',{in:'b1'}),mk('feMergeNode',{in:'SourceGraphic'})].forEach(n=>fm.appendChild(n));
+  fGlow.appendChild(fb1);fGlow.appendChild(fb2);fGlow.appendChild(fm);
+  const fShd=mk('filter',{id:'shd',x:'-10%',y:'-10%',width:'120%',height:'120%'});
+  fShd.appendChild(mk('feDropShadow',{dx:'1',dy:'2',stdDeviation:'2','flood-color':'#000','flood-opacity':'0.9'}));
+  defs.appendChild(fGlow);defs.appendChild(fShd);svg.appendChild(defs);
+  isShort?drawShortBg(svg,defs,W,H):drawVideoBg(svg,defs,W,H);
+  if(isClip)drawClipOverlay(svg,W,H);
+  else{const sp=STYLES[S.subtitleStyle]||STYLES.default;const fill=sp.usePrimary?(COLORS[S.fontColor]||sp.fill):sp.fill;const pos=POSITIONS[S.subtitlePosition]||POSITIONS.bottom;drawSubtitle(svg,W,H,S.pvText,isShort?pos.yFs:pos.yF,sp,fill);}
+}
+function drawVideoBg(svg,defs,W,H){
+  const g=mk('linearGradient',{id:'vbg',x1:'0',y1:'0',x2:'0',y2:'1'});
+  [['0%','#192030'],['45%','#0e1522'],['100%','#080d14']].forEach(([o,c])=>{const s=mk('stop');s.setAttribute('offset',o);s.setAttribute('stop-color',c);g.appendChild(s);});
+  defs.appendChild(g);svg.appendChild(mk('rect',{x:0,y:0,width:W,height:H,fill:'url(#vbg)'}));
+  for(let i=0;i<5;i++)svg.appendChild(mk('rect',{x:W*.07,y:14+i*26,width:W*.86,height:1,fill:'#fff',opacity:(0.025+i*.006).toFixed(3)}));
+  svg.appendChild(mk('ellipse',{cx:W/2,cy:H*.35,rx:13,ry:17,fill:'#fff',opacity:'.04'}));
+  svg.appendChild(mk('rect',{x:W/2-8,y:H*.39,width:16,height:33,fill:'#fff',opacity:'.03'}));
+}
+function drawShortBg(svg,defs,W,H){
+  if(S.bgType==='color'){svg.appendChild(mk('rect',{x:0,y:0,width:W,height:H,fill:S.bgColor}));}
+  else{
+    const g=mk('linearGradient',{id:'sbg',x1:'0',y1:'0',x2:'0',y2:'1'});
+    [['0%','#1a2035'],['100%','#0a0f1a']].forEach(([o,c])=>{const s=mk('stop');s.setAttribute('offset',o);s.setAttribute('stop-color',c);g.appendChild(s);});
+    defs.appendChild(g);svg.appendChild(mk('rect',{x:0,y:0,width:W,height:H,fill:'url(#sbg)'}));
+    svg.appendChild(mk('rect',{x:0,y:0,width:W*.13,height:H,fill:'#08101a',opacity:'.7'}));
+    svg.appendChild(mk('rect',{x:W*.87,y:0,width:W*.13,height:H,fill:'#08101a',opacity:'.7'}));
+    if(S.bgType==='image'){const t=mk('text',{x:W/2,y:H/2,'text-anchor':'middle','dominant-baseline':'middle',fill:'#334','font-size':'9','font-family':'sans-serif'});t.textContent='背景画像';svg.appendChild(t);}
   }
-  if (currentPipeline === 'clip') {
-    const start = v('c-start').trim();
-    if (!start) { alert('開始時間は必須です'); return null; }
-    const p = { start_time: start, text_color: v('c-tcolor'), font_size: parseInt(v('c-fontsize')) };
-    const end = v('c-end').trim(); if (end) p.end_time = end;
-    const top = v('c-top').trim(); if (top) p.top_text = top;
-    const bot = v('c-bottom').trim(); if (bot) p.bottom_text = bot;
-    return p;
-  }
+  svg.appendChild(mk('rect',{x:W*.07,y:H*.05,width:W*.86,height:H*.9,fill:'none',stroke:'#233','stroke-width':'.5',opacity:'.6'}));
 }
-
-// ── ジョブ一覧ポーリング ────────────────────────
-function startPoll() {
-  if (pollTimer) return;
-  pollTimer = setInterval(() => {
-    loadJobs().then(jobs => {
-      if (jobs && !jobs.some(j => j.status === 'queued' || j.status === 'running')) { clearInterval(pollTimer); pollTimer = null; }
-    });
-  }, 3000);
+function drawSubtitle(svg,W,H,text,yFrac,sp,fill){
+  const y=H*yFrac,fs=Math.max(9,Math.round(W/Math.max(text.length*.75,7)));
+  if(sp.box)svg.appendChild(mk('rect',{x:0,y:y-fs*.85,width:W,height:fs*1.7,fill:'rgba(0,0,0,0.74)'}));
+  if(sp.outerS){const ou=mk('text',{x:W/2,y,'text-anchor':'middle','dominant-baseline':'middle',fill:sp.outerS,stroke:sp.outerS,'stroke-width':sp.osw,'stroke-linejoin':'round','paint-order':'stroke fill','font-size':fs,'font-family':'sans-serif','font-weight':sp.bold?'bold':'normal'});ou.textContent=text;svg.appendChild(ou);}
+  const a={x:W/2,y,'text-anchor':'middle','dominant-baseline':'middle',fill,'font-size':fs,'font-family':'sans-serif','font-weight':sp.bold?'bold':'normal','paint-order':'stroke fill'};
+  if(sp.stroke&&sp.sw>0){a.stroke=sp.stroke;a['stroke-width']=sp.sw;a['stroke-linejoin']='round';}
+  if(sp.glow)a.filter='url(#glow)';if(sp.shadow)a.filter='url(#shd)';
+  const t=mk('text',a);t.textContent=text;svg.appendChild(t);
 }
-
-async function loadJobs() {
-  try {
-    const r = await fetch('/api/jobs');
-    const jobs = await r.json();
-    renderJobs(jobs);
-    return jobs;
-  } catch(e) { return null; }
+function drawClipOverlay(svg,W,H){
+  const top=document.getElementById('c-top').value.trim(),bot=document.getElementById('c-bottom').value.trim();
+  const fill=COLORS[S.textColor]||'#ffffff',sp=STYLES.pop;
+  if(!top&&!bot){const t=mk('text',{x:W/2,y:H/2,'text-anchor':'middle','dominant-baseline':'middle',fill:'#445','font-size':'11','font-family':'sans-serif'});t.textContent='上下テキストのプレビュー';svg.appendChild(t);return;}
+  if(top)drawSubtitle(svg,W,H,top,0.14,sp,fill);if(bot)drawSubtitle(svg,W,H,bot,0.86,sp,fill);
 }
-
-function renderJobs(jobs) {
-  document.getElementById('jobCount').textContent = jobs.length;
-  const el = document.getElementById('jobsList');
-  if (!jobs.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">🎞</div><div>まだジョブがありません</div></div>'; return; }
-  el.innerHTML = jobs.map(jobCard).join('');
+function switchPipeline(p){
+  S.pipeline=p;document.querySelectorAll('.pipe-card').forEach(c=>c.classList.toggle('active',c.dataset.p===p));
+  ['pipeline','short','clip'].forEach(id=>{document.getElementById('panel-'+id).style.display=id===p?'':'none';});
+  const T={pipeline:'Video Pipeline 設定',short:'Short Video 設定',clip:'Clip Video 設定'};
+  document.getElementById('settingsTitle').textContent=T[p];document.getElementById('pvTxtRow').style.display=p==='clip'?'none':'';renderPreview();
 }
-
-function jobCard(j) {
-  const statusLabel = { queued:'待機中', running:'実行中', done:'完了', failed:'失敗' }[j.status] || j.status;
-  const pct = j.progress;
-  const barCls = j.status === 'done' ? 'done' : j.status === 'failed' ? 'failed' : '';
-  let footRight = `<span class="job-pct">${pct}%</span>`;
-  if (j.status === 'done' && j.has_result) {
-    footRight += ` <a class="dl-btn" href="/api/jobs/${j.id}/download" download="result.mp4">↓ ダウンロード</a>`;
-  }
-  const errHtml = j.error ? `<div class="err-box">${esc(j.error.slice(0,400))}</div>` : '';
-  const t = new Date(j.created_at).toLocaleTimeString('ja-JP', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-  return `
-<div class="job-card ${j.status}">
-  <div class="job-top">
-    <span class="badge badge-${j.status}">${statusLabel}</span>
-    <span class="job-name">${LABELS[j.pipeline] || j.pipeline}</span>
-    <span class="job-id">${j.id.slice(0,8)}</span>
-    <span class="job-time">${t}</span>
-  </div>
-  <div class="prog-wrap"><div class="prog-fill ${barCls}" style="width:${pct}%"></div></div>
-  <div class="job-foot"><span class="job-lbl">${esc(j.progress_label)}</span>${footRight}</div>
-  ${errHtml}
-</div>`;
+const dropZone=document.getElementById('dropZone'),fileInput=document.getElementById('fileInput');
+dropZone.addEventListener('click',()=>fileInput.click());
+dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('over');});
+dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('over'));
+dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('over');if(e.dataTransfer.files[0])doUpload(e.dataTransfer.files[0]);});
+fileInput.addEventListener('change',()=>{if(fileInput.files[0])doUpload(fileInput.files[0]);});
+document.getElementById('removeFile').addEventListener('click',()=>{S.fileId=null;document.getElementById('filePill').classList.remove('show');document.getElementById('runBtn').disabled=true;fileInput.value='';});
+async function doUpload(file){
+  document.getElementById('uploadProg').style.display='block';dropZone.style.opacity='.5';
+  const fd=new FormData();fd.append('file',file);
+  try{const r=await fetch('/api/upload',{method:'POST',body:fd});if(!r.ok){const e=await r.json();throw new Error(e.error||r.statusText);}const d=await r.json();S.fileId=d.file_id;document.getElementById('fileName').textContent=file.name;document.getElementById('fileSize').textContent=fmtSize(file.size);document.getElementById('filePill').classList.add('show');document.getElementById('runBtn').disabled=false;}
+  catch(e){alert('アップロード失敗: '+e.message);}
+  document.getElementById('uploadProg').style.display='none';dropZone.style.opacity='1';
 }
-
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function fmtSize(b) { if (b < 1048576) return (b/1024).toFixed(1) + ' KB'; return (b/1048576).toFixed(1) + ' MB'; }
-
-loadJobs().then(jobs => { if (jobs && jobs.some(j => j.status === 'queued' || j.status === 'running')) startPoll(); });
+const bgDrop=document.getElementById('bgDrop'),bgInput=document.getElementById('bgInput');
+bgDrop.addEventListener('click',()=>bgInput.click());
+bgInput.addEventListener('change',async()=>{if(!bgInput.files[0])return;const fd=new FormData();fd.append('file',bgInput.files[0]);try{const r=await fetch('/api/upload',{method:'POST',body:fd});const d=await r.json();S.bgFileId=d.file_id;document.getElementById('bgFileName').textContent=bgInput.files[0].name;}catch(e){alert('背景画像アップロード失敗: '+e.message);}});
+document.getElementById('s-bgtype').addEventListener('change',function(){S.bgType=this.value;document.getElementById('s-sigma-wrap').style.display=this.value!=='color'?'':'none';document.getElementById('s-col-wrap').style.display=this.value==='color'?'':'none';document.getElementById('s-img-wrap').style.display=this.value==='image'?'':'none';savePrefs();renderPreview();});
+document.getElementById('runBtn').addEventListener('click',submitJob);
+async function submitJob(){
+  if(!S.fileId)return;const params=gatherParams();if(params===null)return;
+  const btn=document.getElementById('runBtn');btn.disabled=true;btn.textContent='送信中…';
+  try{const r=await fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pipeline:S.pipeline,file_id:S.fileId,params})});if(!r.ok){const e=await r.json();throw new Error(e.error||r.statusText);}const d=await r.json();toast(d.mode==='gha'?'✅ GitHub Actions を起動しました':'✅ ジョブをキューに追加しました');startPoll();loadJobs();}
+  catch(e){alert('送信失敗: '+e.message);}
+  btn.disabled=false;btn.textContent='実行する';
+}
+function gatherParams(){
+  const v=id=>document.getElementById(id).value,chk=id=>document.getElementById(id).checked;
+  if(S.pipeline==='pipeline')return{language:S.lang,whisper_model:S.whisper,font_color:S.fontColor,subtitle_style:S.subtitleStyle,subtitle_position:S.subtitlePosition,noise_db:parseFloat(v('p-noisedb')),min_silence:parseFloat(v('p-minsilence')),skip_refine:chk('p-skiprefine'),thumbnail:chk('p-thumbnail')};
+  if(S.pipeline==='short'){const p={language:S.lang,whisper_model:S.whisper,font_color:S.fontColor,subtitle_style:S.subtitleStyle,subtitle_position:S.subtitlePosition,skip_refine:chk('s-skiprefine'),background_type:S.bgType};if(S.bgType!=='color')p.blur_sigma=parseInt(v('s-blursigma'));if(S.bgType==='color')p.bg_color=S.bgColor;if(S.bgType==='image'&&S.bgFileId)p.bg_file_id=S.bgFileId;return p;}
+  if(S.pipeline==='clip'){const start=v('c-start').trim();if(!start){alert('開始時間は必須です');return null;}const p={start_time:start,text_color:S.textColor,font_size:parseInt(v('c-fontsize'))};const end=v('c-end').trim();if(end)p.end_time=end;const top=v('c-top').trim();if(top)p.top_text=top;const bot=v('c-bottom').trim();if(bot)p.bottom_text=bot;return p;}
+}
+let pollTimer=null;
+function startPoll(){if(pollTimer)return;pollTimer=setInterval(()=>loadJobs().then(jobs=>{if(jobs&&!jobs.some(j=>j.status==='queued'||j.status==='running')){clearInterval(pollTimer);pollTimer=null;}}),5000);}
+async function loadJobs(){
+  try{const r=await fetch('/api/jobs');if(!r.ok)return null;const jobs=await r.json();renderJobs(jobs);
+  if(jobs.length){const m=jobs[0].mode||'worker';const b=document.getElementById('modeBadge');b.textContent=m==='gha'?'GitHub Actions':'Local Worker';b.style.color=m==='gha'?'var(--warn)':'var(--accent)';b.style.borderColor=m==='gha'?'rgba(210,153,34,.3)':'rgba(88,166,255,.25)';b.style.background=m==='gha'?'rgba(210,153,34,.1)':'rgba(88,166,255,.12)';}
+  return jobs;}catch(e){return null;}
+}
+function renderJobs(jobs){
+  document.getElementById('jobCount').textContent=jobs.length;const el=document.getElementById('jobsList');
+  if(!jobs.length){el.innerHTML='<div class="empty"><div class="empty-icon">\u{1f39e}</div><div>まだジョブがありません</div></div>';return;}
+  el.innerHTML=jobs.map(j=>{
+    const sl={queued:'待機中',running:'実行中',done:'完了',failed:'失敗'}[j.status]||j.status;
+    const pct=j.progress||0,bc=j.status==='done'?'done':j.status==='failed'?'failed':'';
+    const gt=j.mode==='gha'?'<span class="gha-tag">GHA</span>':'';
+    let fr=`<span class="job-pct">${pct}%</span>`;if(j.status==='done'&&j.has_result)fr+=` <a class="dl-btn" href="/api/jobs/${j.id}/download" download="result.mp4">↓ DL</a>`;
+    const eh=j.error?`<div class="err-box">${esc(j.error.slice(0,400))}</div>`:'';
+    const t=new Date(j.created_at).toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    return `<div class="job-card ${j.status}"><div class="job-top"><span class="badge badge-${j.status}">${sl}</span>${gt}<span class="job-name">${PIPE_LABELS[j.pipeline]||j.pipeline}</span><span class="job-id">${j.id.slice(0,8)}</span><span class="job-time">${t}</span></div><div class="prog-wrap"><div class="prog-fill ${bc}" style="width:${pct}%"></div></div><div class="job-foot"><span class="job-lbl">${esc(j.progress_label||'')}</span>${fr}</div>${eh}</div>`;
+  }).join('');
+}
+function toast(msg){let el=document.getElementById('_t');if(!el){el=document.createElement('div');el.id='_t';Object.assign(el.style,{position:'fixed',bottom:'20px',right:'20px',background:'#1e242d',border:'1px solid var(--border)',borderRadius:'8px',padding:'10px 15px',fontSize:'13px',color:'var(--text)',zIndex:'9999',boxShadow:'0 4px 16px rgba(0,0,0,.5)',transition:'opacity .3s'});document.body.appendChild(el);}el.textContent=msg;el.style.opacity='1';clearTimeout(el._t);el._t=setTimeout(()=>el.style.opacity='0',3000);}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmtSize(b){return b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB';}
+function bindSel(id,key){const e=document.getElementById(id);if(S[key]!==undefined)e.value=S[key];e.addEventListener('change',function(){S[key]=this.value;savePrefs();renderPreview();});}
+function bindNum(id,key){const e=document.getElementById(id);if(S[key]!==undefined)e.value=S[key];e.addEventListener('input',function(){S[key]=parseFloat(this.value)||S[key];savePrefs();});}
+loadPrefs();
+buildStyleChips('p-sc');buildStyleChips('s-sc');
+buildColorGrid('p-cg','fontColor');buildColorGrid('s-cg','fontColor');buildColorGrid('c-cg','textColor');
+buildPosBtns('p-ps');buildPosBtns('s-ps');
+['p-cg','s-cg'].forEach(id=>document.querySelectorAll(`#${id} .clr-btn`).forEach(b=>b.classList.toggle('active',b.dataset.color===S.fontColor)));
+document.querySelectorAll('#c-cg .clr-btn').forEach(b=>b.classList.toggle('active',b.dataset.color===S.textColor));
+bindSel('p-lang','lang');bindSel('p-whisper','whisper');bindSel('s-lang','lang');bindSel('s-whisper','whisper');
+bindSel('s-bgtype','bgType');bindSel('s-bgcolor','bgColor');
+bindNum('p-noisedb','noiseDb');bindNum('p-minsilence','minSilence');bindNum('s-blursigma','blurSigma');bindNum('c-fontsize','fontSize');
+(()=>{const t=S.bgType;document.getElementById('s-sigma-wrap').style.display=t!=='color'?'':'none';document.getElementById('s-col-wrap').style.display=t==='color'?'':'none';document.getElementById('s-img-wrap').style.display=t==='image'?'':'none';})();
+document.querySelectorAll('.pipe-card').forEach(c=>c.addEventListener('click',()=>switchPipeline(c.dataset.p)));
+document.getElementById('pvText').addEventListener('input',function(){S.pvText=this.value;renderPreview();});
+['c-top','c-bottom'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{if(S.pipeline==='clip')renderPreview();}));
+renderPreview();
+loadJobs().then(jobs=>{if(jobs&&jobs.some(j=>j.status==='queued'||j.status==='running'))startPoll();});
 </script>
 </body>
 </html>

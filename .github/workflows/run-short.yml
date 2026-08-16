@@ -48,6 +48,16 @@ on:
         default: "yellow"
         required: false
         type: string
+      subtitle_style:
+        description: "字幕スタイルプリセット (default / news / pop / karaoke / minimal / telop / neon)"
+        default: "default"
+        required: false
+        type: string
+      subtitle_position:
+        description: "字幕の位置 (bottom / top / middle / lower-third / upper-third)"
+        default: "bottom"
+        required: false
+        type: string
       background_type:
         description: "背景の種類: blur=動画ぼかし / color=単色 / image=指定画像ぼかし"
         default: "blur"
@@ -144,6 +154,8 @@ jobs:
           ARGS="$VIDEO_PATH --language ${{ inputs.language }}"
           ARGS="$ARGS --font \"$SUBTITLE_FONT\""
           ARGS="$ARGS --font-color ${{ inputs.font_color }}"
+          ARGS="$ARGS --subtitle-style \"${{ inputs.subtitle_style }}\""
+          ARGS="$ARGS --subtitle-position \"${{ inputs.subtitle_position }}\""
           ARGS="$ARGS --blur-sigma ${{ inputs.blur_sigma }}"
           if [ "${{ inputs.skip_refine }}" = "true" ]; then
             ARGS="$ARGS --skip-refine"

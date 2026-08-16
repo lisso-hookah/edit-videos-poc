@@ -336,26 +336,30 @@ function build_workflow_inputs(array $job): array
 
     if ($job['pipeline'] === 'pipeline') {
         return array_merge($base, [
-            'language'      => $p['language']     ?? 'ja',
-            'whisper_model' => $p['whisper_model'] ?? 'medium',
-            'font_color'    => $p['font_color']    ?? 'yellow',
-            'noise_db'      => (string)($p['noise_db']    ?? '-30'),
-            'min_silence'   => (string)($p['min_silence'] ?? '0.5'),
-            'skip_refine'   => ($p['skip_refine'] ?? false) ? 'true' : 'false',
-            'thumbnail'     => ($p['thumbnail']   ?? false) ? 'true' : 'false',
+            'language'          => $p['language']          ?? 'ja',
+            'whisper_model'     => $p['whisper_model']     ?? 'medium',
+            'font_color'        => $p['font_color']        ?? 'yellow',
+            'subtitle_style'    => $p['subtitle_style']    ?? 'default',
+            'subtitle_position' => $p['subtitle_position'] ?? 'bottom',
+            'noise_db'          => (string)($p['noise_db']    ?? '-30'),
+            'min_silence'       => (string)($p['min_silence'] ?? '0.5'),
+            'skip_refine'       => ($p['skip_refine'] ?? false) ? 'true' : 'false',
+            'thumbnail'         => ($p['thumbnail']   ?? false) ? 'true' : 'false',
         ]);
     }
 
     if ($job['pipeline'] === 'short') {
         $bg_type = $p['background_type'] ?? 'blur';
         return array_merge($base, [
-            'language'         => $p['language']     ?? 'ja',
-            'whisper_model'    => $p['whisper_model'] ?? 'medium',
-            'font_color'       => $p['font_color']    ?? 'yellow',
-            'background_type'  => $bg_type,
-            'background_color' => $p['bg_color']      ?? 'black',
-            'blur_sigma'       => (string)($p['blur_sigma'] ?? '40'),
-            'skip_refine'      => ($p['skip_refine'] ?? false) ? 'true' : 'false',
+            'language'          => $p['language']          ?? 'ja',
+            'whisper_model'     => $p['whisper_model']     ?? 'medium',
+            'font_color'        => $p['font_color']        ?? 'yellow',
+            'subtitle_style'    => $p['subtitle_style']    ?? 'default',
+            'subtitle_position' => $p['subtitle_position'] ?? 'bottom',
+            'background_type'   => $bg_type,
+            'background_color'  => $p['bg_color']          ?? 'black',
+            'blur_sigma'        => (string)($p['blur_sigma'] ?? '40'),
+            'skip_refine'       => ($p['skip_refine'] ?? false) ? 'true' : 'false',
             // 背景画像は bg_file_id として渡す（GHA 側でダウンロード）
             'lollipop_bg_file_id' => $p['bg_file_id'] ?? '',
         ]);

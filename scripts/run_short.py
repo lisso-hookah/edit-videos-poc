@@ -15,6 +15,8 @@ def main() -> None:
     parser.add_argument("--skip-refine", action="store_true", help="Skip Gemini refinement step")
     parser.add_argument("--font", default=None, help="Subtitle font name")
     parser.add_argument("--font-color", default="yellow", help="字幕文字色 (yellow / white / red / black など)")
+    parser.add_argument("--subtitle-style", default="default", help="字幕スタイルプリセット (default/news/pop/karaoke/minimal/telop/neon)")
+    parser.add_argument("--subtitle-position", default="bottom", help="字幕位置 (bottom/top/middle/lower-third/upper-third)")
     parser.add_argument("--blur-sigma", type=int, default=40, help="Background blur strength (default: 40)")
     parser.add_argument("--bg-color", default=None, help="単色背景色 (black / white / など)")
     parser.add_argument("--bg-image", default=None, type=Path, help="背景に使う静止画パス（ぼかし適用）")
