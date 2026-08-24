@@ -12,7 +12,8 @@ def main() -> None:
     parser.add_argument("--language", default="ja", help="Transcription language (default: ja)")
     parser.add_argument("--noise-db", type=float, default=-30.0, help="Silence threshold in dB")
     parser.add_argument("--min-silence", type=float, default=0.5, help="Minimum silence duration (s)")
-    parser.add_argument("--skip-refine", action="store_true", help="Skip Gemini refinement step")
+    parser.add_argument("--skip-refine", action="store_true", help="Skip LLM refinement step")
+    parser.add_argument("--classify-topics", action="store_true", help="ローカル LLM でトピック分類して章タイトルを表示")
     parser.add_argument("--font", default=None, help="Subtitle font name")
     parser.add_argument("--font-color", default="yellow", help="字幕文字色 (yellow / white / red / black など)")
     parser.add_argument("--subtitle-style", default="default", help="字幕スタイルプリセット (default/news/pop/karaoke/minimal/telop/neon)")
@@ -46,10 +47,20 @@ def main() -> None:
 
     if args.skip_refine:
         refined = segments
-        print("[4/6] Skipping Gemini refinement (--skip-refine)")
+        print("[4/6] Skipping LLM refinement (--skip-refine)")
     else:
-        print("[4/6] Refining with Gemini...")
+        print("[4/6] Refining (auto: local LLM → Gemini → skip)...")
         refined = refine_segments(segments)
+
+    if args.classify_topics:
+        print("[4b] Classifying topics with local LLM...")
+        from edit_videos_poc.pipeline.refine_local import classify_topics, is_available
+        if is_available():
+            groups = classify_topics(refined)
+            for g in groups:
+                print(f"       [{g.start:.1f}s – {g.end:.1f}s] {g.topic}")
+        else:
+            print("       ⚠ llama.cpp server not reachable — skipping topic classification")
 
     print("[5/6] Generating ASS subtitles...")
     shifted = shift_for_cuts(refined, cuts)

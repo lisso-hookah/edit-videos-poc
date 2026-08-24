@@ -1,4 +1,10 @@
-"""Gemini-based filler removal and summarization over transcript segments."""
+"""Filler removal and summarization — auto-selects local LLM or Gemini.
+
+優先順位:
+  1. LOCAL_LLM_URL が設定されていて llama.cpp サーバーが起動中 → ローカル LLM
+  2. GEMINI_API_KEY が設定されている → Gemini
+  3. どちらもなければ元のセグメントをそのまま返す（スキップ）
+"""
 from __future__ import annotations
 
 import re
@@ -20,8 +26,23 @@ _LINE_RE = re.compile(r"^\[(\d+)\]\s*(.*)")
 
 
 def refine_segments(segments: list[Segment]) -> list[Segment]:
-    """Remove filler words from all segments in a single Gemini call."""
+    """Remove filler words from all segments — auto-routes to local LLM or Gemini."""
     if not segments:
+        return segments
+
+    # Prefer local LLM when available
+    if config.LOCAL_LLM_URL:
+        from .refine_local import is_available, refine_segments_local
+        if is_available():
+            return refine_segments_local(segments)
+
+    # Fall back to Gemini
+    if not config.GEMINI_API_KEY:
+        import warnings
+        warnings.warn(
+            "GEMINI_API_KEY not set and local LLM not reachable — skipping refinement.",
+            stacklevel=2,
+        )
         return segments
 
     numbered = "\n".join(f"[{i}] {seg.text}" for i, seg in enumerate(segments))
