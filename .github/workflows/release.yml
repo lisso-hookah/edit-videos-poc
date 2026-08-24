@@ -18,29 +18,36 @@ jobs:
       matrix:
         include:
           - platform: ubuntu-22.04
-            target: x86_64-unknown-linux-gnu
             rust-target: x86_64-unknown-linux-gnu
+            ffmpeg-url: "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz"
+            ffmpeg-bin: "ffmpeg-master-latest-linux64-gpl/bin"
+
           - platform: windows-latest
-            target: x86_64-pc-windows-msvc
             rust-target: x86_64-pc-windows-msvc
+            ffmpeg-url: "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
+            ffmpeg-bin: "ffmpeg-master-latest-win64-gpl/bin"
+
           - platform: macos-latest
-            target: universal-apple-darwin
             rust-target: aarch64-apple-darwin
+            ffmpeg-url: ""   # Homebrew で取得
+            ffmpeg-bin: ""
 
     runs-on: ${{ matrix.platform }}
-    timeout-minutes: 60
+    timeout-minutes: 90
 
     steps:
       - uses: actions/checkout@v4
 
+      # ── Python ───────────────────────────────────────────────────
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
 
-      - name: Install Python project
+      - name: Install Python project + PyInstaller
         run: pip install -e . pyinstaller
 
+      # ── System deps ───────────────────────────────────────────────
       - name: Install Linux system deps
         if: runner.os == 'Linux'
         run: |
@@ -49,43 +56,95 @@ jobs:
             libwebkit2gtk-4.1-dev \
             libappindicator3-dev \
             librsvg2-dev \
-            patchelf \
-            ffmpeg
+            patchelf
 
-      - name: Install macOS system deps
+      # ── ffmpeg ────────────────────────────────────────────────────
+      - name: Download ffmpeg (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          curl -fL "${{ matrix.ffmpeg-url }}" -o /tmp/ffmpeg.tar.xz
+          tar -xf /tmp/ffmpeg.tar.xz -C /tmp
+          sudo cp /tmp/${{ matrix.ffmpeg-bin }}/ffmpeg /usr/local/bin/
+          sudo cp /tmp/${{ matrix.ffmpeg-bin }}/ffprobe /usr/local/bin/
+          ffmpeg -version | head -1
+
+      - name: Download ffmpeg (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Invoke-WebRequest "${{ matrix.ffmpeg-url }}" -OutFile "$env:TEMP\ffmpeg.zip"
+          Expand-Archive "$env:TEMP\ffmpeg.zip" -DestinationPath "$env:TEMP"
+          $binDir = Get-ChildItem "$env:TEMP" -Directory | Where-Object { $_.Name -like 'ffmpeg-*' } | Select-Object -First 1
+          Copy-Item "$($binDir.FullName)\bin\ffmpeg.exe" "C:\Windows\System32\"
+          Copy-Item "$($binDir.FullName)\bin\ffprobe.exe" "C:\Windows\System32\"
+          ffmpeg -version | Select-Object -First 1
+
+      - name: Install ffmpeg (macOS)
         if: runner.os == 'macOS'
         run: brew install ffmpeg
 
-      - name: Install Windows system deps
-        if: runner.os == 'Windows'
-        run: choco install ffmpeg --no-progress -y
+      # ── Windows code signing (EV certificate) ────────────────────
+      - name: Import Windows EV certificate
+        if: runner.os == 'Windows' && secrets.WINDOWS_CERTIFICATE != ''
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          $certBytes = [System.Convert]::FromBase64String($env:WINDOWS_CERTIFICATE)
+          $certPath  = Join-Path $env:TEMP "ev_cert.pfx"
+          [IO.File]::WriteAllBytes($certPath, $certBytes)
+          $flags = [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::MachineKeySet `
+                 -bor [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::PersistKeySet
+          $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(
+              $certPath, $env:WINDOWS_CERTIFICATE_PASSWORD, $flags)
+          $store = New-Object System.Security.Cryptography.X509Certificates.X509Store("My","LocalMachine")
+          $store.Open("ReadWrite")
+          $store.Add($cert)
+          $store.Close()
+          $thumbprint = $cert.Thumbprint
+          echo "WINDOWS_SIGNING_THUMBPRINT=$thumbprint" >> $env:GITHUB_ENV
+          Remove-Item $certPath
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      # ── Rust ─────────────────────────────────────────────────────
+      - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.rust-target }}
 
-      - name: Rust cache
-        uses: swatinem/rust-cache@v2
+      - uses: swatinem/rust-cache@v2
         with:
           workdir: src-tauri
 
+      # ── Node / npm ────────────────────────────────────────────────
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
-      - name: Install Node deps
-        run: npm install
+      - run: npm install
 
+      # ── Python sidecar (with bundled ffmpeg) ─────────────────────
       - name: Build Python sidecar
         shell: bash
         run: bash scripts/build_sidecar.sh
 
-      - name: Tauri build
+      # ── Tauri build + release ─────────────────────────────────────
+      - name: Tauri build & publish release
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Tauri updater signing (generate with: tauri signer generate)
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Windows EV signing via signtool (uses imported cert thumbprint above)
+          TAURI_WINDOWS_SIGN_COMMAND: >-
+            signtool sign
+            /sha1 ${{ env.WINDOWS_SIGNING_THUMBPRINT }}
+            /fd sha256
+            /tr http://timestamp.digicert.com
+            /td sha256
+            /v
+            %1
         with:
           tagName: ${{ github.ref_name || inputs.version }}
           releaseName: "Edit Videos ${{ github.ref_name || inputs.version }}"
