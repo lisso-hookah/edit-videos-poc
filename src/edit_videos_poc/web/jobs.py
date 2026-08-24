@@ -79,6 +79,8 @@ def _build_command(job: Job) -> tuple[str, list[str], dict[str, str]]:
             "--noise-db", str(p.get("noise_db", "-30")),
             "--min-silence", str(p.get("min_silence", "0.5")),
             "--font-color", str(p.get("font_color", "yellow")),
+            "--subtitle-style", str(p.get("subtitle_style", "default")),
+            "--subtitle-position", str(p.get("subtitle_position", "bottom")),
         ]
         if p.get("skip_refine"):
             args.append("--skip-refine")
@@ -91,6 +93,8 @@ def _build_command(job: Job) -> tuple[str, list[str], dict[str, str]]:
             video,
             "--language", str(p.get("language", "ja")),
             "--font-color", str(p.get("font_color", "yellow")),
+            "--subtitle-style", str(p.get("subtitle_style", "default")),
+            "--subtitle-position", str(p.get("subtitle_position", "bottom")),
             "--blur-sigma", str(p.get("blur_sigma", "40")),
         ]
         if p.get("skip_refine"):

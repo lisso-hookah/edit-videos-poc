@@ -10,12 +10,15 @@ dependencies = [
     "srt>=3.5.0",
     "python-dotenv>=1.0.0",
     "openai>=2.33.0",
-    "fastapi>=0.136.1",
+    "fastapi[standard]>=0.136.1",
     "uvicorn[standard]>=0.46.0",
     "python-multipart>=0.0.27",
     "aiofiles>=25.1.0",
     "requests>=2.33.1",
 ]
+
+[project.scripts]
+evp = "edit_videos_poc.web.app:main"
 
 [project.optional-dependencies]
 dev = ["ruff>=0.6.0"]
