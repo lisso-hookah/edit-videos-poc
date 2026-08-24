@@ -28,3 +28,7 @@ models/
 .vscode/
 .idea/
 .ipynb_checkpoints/
+
+# Node / Tauri
+node_modules/
+src-tauri/target/
