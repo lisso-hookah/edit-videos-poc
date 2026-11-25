@@ -41,7 +41,8 @@ jobs:
 
       # End-to-end on an 8-second cut of the sample, with the smallest Whisper model.
       - name: Clip
-        run: uv run --frozen edit-videos clip samples/114514.mp4 --start 5 --duration 8 --top-text "CI: テスト"
+        run: >-
+          uv run --frozen edit-videos clip samples/114514.mp4 --start 5 --duration 8 --top-text "CI: テスト"
 
       - name: Video pipeline
         run: uv run --frozen edit-videos pipeline output/clip/114514_clip.mp4 --skip-refine --min-silence 0.2 --noise-db -25

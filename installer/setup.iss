@@ -66,7 +66,6 @@ Type: filesandordirs; Name: "{app}\output"
 Type: filesandordirs; Name: "{app}\src"
 Type: files;          Name: "{app}\.env"
 
-[Code] (Pascal) ───────────────────────────────────────────────
 [Code]
 
 // ─── カスタム API キーページの変数 ─────────────────────────────
