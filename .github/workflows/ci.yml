@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "scripts/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/ci.yml"
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      PYTHONUTF8: "1"
+      WHISPER_MODEL: tiny
+      WORK_DIR: ./output
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install (from uv.lock)
+        run: uv sync --frozen --extra dev
+
+      - name: Unit tests
+        run: uv run --frozen pytest -q
+
+      - name: Diagnose environment
+        run: uv run --frozen edit-videos doctor
+
+      # End-to-end on an 8-second cut of the sample, with the smallest Whisper model.
+      - name: Clip
+        run: uv run --frozen edit-videos clip samples/114514.mp4 --start 5 --duration 8 --top-text "CI: テスト"
+
+      - name: Video pipeline
+        run: uv run --frozen edit-videos pipeline output/clip/114514_clip.mp4 --skip-refine --min-silence 0.2 --noise-db -25
+
+      - name: Short pipeline
+        run: uv run --frozen edit-videos short output/clip/114514_clip.mp4 --skip-refine --bg-color black
+
+      - name: Check outputs
+        shell: bash
+        run: |
+          ls -l output/rendered output/vertical
+          test -s output/rendered/114514_clip_cut_subbed.mp4
+          test -s output/vertical/114514_clip_cut_subbed_vertical.mp4

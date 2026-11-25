@@ -237,6 +237,17 @@ header span { font-size: 22px; }
   white-space: pre-wrap;
   word-break: break-word;
 }
+.warn-box {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: rgba(210,153,34,.08);
+  border: 1px solid rgba(210,153,34,.25);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--warn);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 
 .empty { text-align: center; color: var(--muted); padding: 48px 0; }
 .empty .empty-icon { font-size: 36px; margin-bottom: 12px; }
@@ -256,6 +267,7 @@ header span { font-size: 22px; }
     <div class="card">
       <div class="card-title">動画ファイル</div>
 
+      <div class="warn-box" id="envNotice" style="display:none;margin:0 0 14px"></div>
       <div class="drop-zone" id="dropZone">
         <span class="icon">📂</span>
         <div>ドラッグ＆ドロップ または クリックして選択</div>
@@ -665,8 +677,11 @@ function jobCard(j) {
     footRight += ` <a class="dl-btn" href="${url}" download>↓ ダウンロード</a>`;
   }
 
+  // The cause is at the end of a traceback, so keep the tail rather than the head.
   const errHtml = j.error
-    ? `<div class="err-box">${esc(j.error.slice(0, 400))}</div>` : '';
+    ? `<div class="err-box">${esc(j.error.length > 800 ? '…' + j.error.slice(-800) : j.error)}</div>` : '';
+  const warnHtml = (j.warnings || []).length
+    ? `<div class="warn-box">${j.warnings.map(esc).join('\n')}</div>` : '';
 
   const t = new Date(j.created_at).toLocaleTimeString('ja-JP', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
 
@@ -683,6 +698,7 @@ function jobCard(j) {
     <span class="job-lbl">${esc(j.progress_label)}${esc(qInfo)}</span>
     ${footRight}
   </div>
+  ${warnHtml}
   ${errHtml}
 </div>`;
 }
@@ -695,6 +711,14 @@ function fmtSize(b) {
   if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
   return (b/1048576).toFixed(1) + ' MB';
 }
+
+fetch('/api/health').then(r => r.json()).then(h => {
+  if (h.gemini) return;
+  const el = document.getElementById('envNotice');
+  el.textContent = 'GEMINI_API_KEY が未設定のため、フィラー除去はスキップされます（字幕は文字起こしのまま出力）。' +
+    '有効にするには ' + h.data_dir + ' の .env に GEMINI_API_KEY を設定して再起動してください。';
+  el.style.display = '';
+}).catch(() => {});
 
 // Initial load + auto-poll if any active jobs
 loadJobs().then(jobs => {

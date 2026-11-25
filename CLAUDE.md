@@ -7,11 +7,21 @@
 - **PoC（現在）**: Colab GPU ランタイムで動かす。処理本体は `src/edit_videos_poc/` のモジュール、notebook は薄いエントリ。
 - **将来**: 常駐サーバー化（FastAPI 想定）。今のうちから「セッション固有状態を持たない関数」で書く。
 
+## 実行形態
+
+- **ローカル**: `uv run edit-videos`（FastAPI の Web UI）/ `uv run edit-videos pipeline|short|clip|doctor`。エントリは `src/edit_videos_poc/cli.py`
+- **GitHub Actions**: `scripts/run_*.py`（`cli.main` への薄いシム）。引数・出力先（`output/rendered` 等）は workflow と対になっているので変えるときは両方直す
+- ロジックは必ず `src/edit_videos_poc/` に置く。`scripts/` と notebook に処理を書かない
+- Web UI のジョブは `jobspec.build_args()` で CLI 引数に変換し、`sys.executable -m edit_videos_poc ...` を子プロセスで実行する（`"python"` を直書きしない）
+
 ## 開発ルール
 
 ### ffmpeg 実行
 - `subprocess.run(..., capture_output=True, text=True)` を使う。失敗時は **stderr を例外メッセージに含める**
-- 共通ヘルパー `pipeline._ffmpeg.run_ffmpeg` を経由する（重複させない）
+- 共通ヘルパー `pipeline._ffmpeg.run_ffmpeg` を経由する（重複させない）。ffmpeg の場所（PATH → 同梱 imageio-ffmpeg）と UTF-8 デコードはここが面倒を見る
+- フィルタにファイルパスを渡すときは `pipeline._ffmpeg.filter_path()` でエスケープする（Windows の `C:` で壊れる）
+- フォント名を直書きしない。`config.default_font()`（`SUBTITLE_FONT` → OS の日本語フォント）を使う
+- 無限に続く入力（`color=` / `-loop 1`）を overlay するときは `shortest=1` を付ける
 
 ### 長時間処理は自動実行しない
 - 動画レンダリング・large-v3 文字起こしは数分〜数十分。**ユーザーに確認してから走らせる**
@@ -31,7 +41,7 @@
 
 ### Whisper モデル
 - デフォルト `large-v3`。Colab 無料枠が厳しければ `WHISPER_MODEL=medium` で env 上書き
-- GPU で `float16`、CPU で `int8` を `transcribe._select_runtime()` が自動選択
+- GPU で `float16`、CPU で `int8` を `transcribe._select_runtime()` が自動選択（`WHISPER_DEVICE` で強制可。ローカルの GPU は `uv sync --extra gpu`）
 
 ### Gemini
 - 新 SDK `google-genai`（`from google import genai`）を使う。旧 `google-generativeai` は使わない
@@ -42,6 +52,10 @@
 - public 関数のみ 1 行 docstring。WHY が非自明なときだけインラインコメント
 - `from __future__ import annotations` を全モジュール先頭に
 - 重い import（`torch` / `faster_whisper` / `google.genai`）は **関数内で lazy import**
+
+### テスト
+- `uv run --extra dev pytest`（ffmpeg で合成した 3 秒動画を使う。Whisper / Gemini は呼ばない）
+- Windows 固有の挙動は手元で確認できないので CI（`.github/workflows/ci.yml` の windows ジョブ）で確認する
 
 ### 依存管理
 - **`uv` で統一**。新規追加は `uv add <pkg>` を使う（自動で `pyproject.toml` と `uv.lock` を更新 → 必ずコミット）

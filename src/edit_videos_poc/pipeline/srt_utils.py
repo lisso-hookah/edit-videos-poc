@@ -42,6 +42,7 @@ def color_to_ass(color: str) -> str:
     """Convert English color name or existing ASS code to ASS format."""
     return _COLOR_MAP.get(color.lower(), color)
 
+
 _JP_BREAK_CHARS = frozenset("、。！？…・,.")
 
 
@@ -75,7 +76,7 @@ def _td_to_ass(td: timedelta) -> str:
 
 def segments_to_ass(
     segments: list[Segment],
-    font: str = "Noto Sans CJK JP",
+    font: str | None = None,
     font_size: int = 48,
     text_color: str = "&H0000FFFF&",
     inner_color: str = "&H00000000&",
@@ -93,6 +94,7 @@ def segments_to_ass(
     box_background: semi-transparent black box behind text (Netflix style).
     White/black text → single outline. Other colors → double outline.
     """
+    font = font or config.default_font()
     text_color = color_to_ass(text_color)
     inner_color = color_to_ass(inner_color)
     outer_color = color_to_ass(outer_color)
