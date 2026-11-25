@@ -1,0 +1,5 @@
+# cmd.exe needs CRLF in batch files; sh needs LF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.sh text eol=lf
+*.command text eol=lf

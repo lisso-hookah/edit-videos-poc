@@ -2,9 +2,86 @@
 
 動画の無音カット・文字起こし・字幕焼き込みを自動化する Python プロジェクトです。
 
+動かし方は 2 通りあります。
+
+| 方法 | 向いている場面 |
+|---|---|
+| **[ローカルで動かす](#ローカルで動かす)** | 自分の PC だけで完結させたい（サーバー・GitHub Actions 不要） |
+| **[Lollipop + GitHub Actions](#アーキテクチャlollipop--github-actions-版)** | ブラウザから誰でも使える Web サービスとして公開したい |
+
 ---
 
-## アーキテクチャ
+## ローカルで動かす
+
+必要なのは [uv](https://docs.astral.sh/uv/) だけです。Python 本体・依存パッケージ・ffmpeg は uv が `uv.lock` のとおりに揃えます。
+
+```bash
+git clone https://github.com/lisso-hookah/edit-videos-poc.git
+cd edit-videos-poc
+uv run edit-videos          # → http://127.0.0.1:8000 がブラウザで開く
+```
+
+コマンドを打ちたくない場合は、フォルダ内のランチャーをダブルクリックしてください（uv が無ければ導入してから起動します）。
+
+| OS | ランチャー |
+|---|---|
+| Windows | `start.bat` |
+| macOS | `start.command` |
+| Linux | `./start.sh` |
+
+- 初回起動は Python と依存パッケージの取得に数分、初回ジョブは Whisper モデルの取得（medium: 約 1.5 GB）に時間がかかります
+- 終了は起動したウィンドウで Ctrl+C（またはウィンドウを閉じる）
+- うまく動かないときは `uv run edit-videos doctor` で ffmpeg / GPU / フォント / API キーの状態を確認できます
+
+### API キー（任意）
+
+`.env.example` を `.env` にコピーして設定します。**キーが無くても動きます**（その場合フィラー除去はスキップされ、文字起こしのままの字幕になります）。
+
+| キー | 用途 |
+|---|---|
+| `GEMINI_API_KEY` | 字幕のフィラー除去 |
+| `OPENAI_API_KEY` | サムネイル生成（任意） |
+
+### GPU（NVIDIA）で高速化
+
+既定は CPU（int8）で動きます。NVIDIA GPU を使う場合は CUDA ライブラリ入りの extra を追加します。
+
+```bash
+uv sync --extra gpu
+uv run edit-videos doctor   # Whisper: device=cuda になっていれば有効
+```
+
+GPU での文字起こしに失敗した場合は自動で CPU にフォールバックします。強制したいときは `.env` に `WHISPER_DEVICE=cpu`（または `cuda`）を設定してください。
+
+### コマンドラインから直接実行
+
+```bash
+uv run edit-videos pipeline videos/input.mp4 --language ja --font-color yellow   # 横動画 + 字幕
+uv run edit-videos short    videos/input.mp4 --language ja                       # 縦型 9:16
+uv run edit-videos clip     videos/input.mp4 --start 10 --end 40 --top-text "タイトル"
+```
+
+出力は `./output/`（`WORK_DIR` で変更可）の `rendered/` / `vertical/` / `clip/` に入ります。
+
+### ローカル版の設定（環境変数 / `.env`）
+
+| 変数 | 既定 | 説明 |
+|---|---|---|
+| `WHISPER_MODEL` | `large-v3`（Web UI は画面で選択、既定 `medium`） | 文字起こしモデル |
+| `WHISPER_DEVICE` | 自動 | `cpu` / `cuda` を強制 |
+| `SUBTITLE_FONT` | OS の日本語フォント（Windows: Yu Gothic、macOS: Hiragino Sans、Linux: Noto Sans CJK JP 等） | 字幕フォント |
+| `FFMPEG_BINARY` | PATH 上の ffmpeg → 同梱 ffmpeg | 使用する ffmpeg |
+| `EDIT_VIDEOS_HOME` | リポジトリ直下 | Web UI のデータ（`uploads/`・`output/jobs/`・`.env`）の置き場所 |
+| `EDIT_VIDEOS_MAX_JOBS` | `1` | 同時に実行するジョブ数 |
+| `EDIT_VIDEOS_RETENTION_DAYS` | `7` | アップロード・ジョブ出力を起動時に自動削除するまでの日数（`0` で削除しない） |
+
+LAN 内の別端末から使う場合は `uv run edit-videos --host 0.0.0.0`（認証は無いので信頼できるネットワーク内のみ）。
+
+Windows 用インストーラーを作る場合は [installer/BUILD.md](installer/BUILD.md) を参照してください。
+
+---
+
+## アーキテクチャ（Lollipop + GitHub Actions 版）
 
 ```
 ブラウザ
@@ -178,39 +255,8 @@ define('GITHUB_REF',   'main');                           // ← 変更不要
 ③ 無音区間検出      ffmpeg silencedetect
 ④ フィラー除去      Gemini API（--skip-refine でスキップ可）
 ⑤ ASS 字幕生成     二重縁取り対応
-⑥ 無音カット＋字幕焼き込み  ffmpeg
+⑥ 無音カット＋字幕焼き込み  ffmpeg（1 回のエンコードで実行）
 ⑦ 9:16 縦型変換    ffmpeg（Short のみ）
-```
-
----
-
-## コマンドラインから実行（ローカル単体）
-
-Worker を経由せず、直接スクリプトを実行することもできます。
-
-### 必要なもの（ローカル実行時）
-
-| ツール | 用途 |
-|---|---|
-| Python 3.11+ | ローカル実行 |
-| [uv](https://docs.astral.sh/uv/) | Python パッケージ管理 |
-| ffmpeg | 動画処理（PATH に追加） |
-
-```powershell
-# セットアップ
-git clone https://github.com/lisso-hookah/edit-videos-poc.git
-cd edit-videos-poc
-uv sync
-copy .env.example .env  # .env を編集して API キーを設定
-
-# Video Pipeline
-uv run python scripts\run_pipeline.py videos\input.mp4 --language ja --font-color yellow
-
-# Short Video Pipeline
-uv run python scripts\run_short.py videos\input.mp4 --language ja
-
-# Clip Video
-uv run python scripts\run_clip.py videos\input.mp4 --start 10 --end 40 --top-text "タイトル"
 ```
 
 ---
@@ -246,37 +292,45 @@ edit-videos-poc/
 │       ├── .htaccess         data/ への直接アクセスを拒否
 │       └── config.php        設定ファイル（WORKER_KEY / GITHUB_TOKEN など）
 │
-├── scripts/
-│   ├── run_worker.py         Windows ローカル Worker（オプション）
-│   ├── run_pipeline.py       Video Pipeline CLI
-│   ├── run_short.py          Short Video Pipeline CLI
-│   ├── run_clip.py           Clip Video CLI
-│   └── run_server.py         ローカル FastAPI サーバー（単体利用時）
+├── start.bat / start.command / start.sh   ローカル起動ランチャー
 │
 ├── src/edit_videos_poc/
+│   ├── cli.py                `edit-videos` コマンド（serve / pipeline / short / clip / doctor）
+│   ├── config.py             パス・環境変数・既定フォント
+│   ├── jobspec.py            ジョブ（パラメータ）→ CLI 引数の変換
 │   ├── pipeline/
+│   │   ├── _ffmpeg.py        ffmpeg の解決と実行（共通ヘルパー）
 │   │   ├── audio.py          音声抽出
 │   │   ├── transcribe.py     faster-whisper 文字起こし
 │   │   ├── silence.py        無音検出
 │   │   ├── refine.py         Gemini フィラー除去
 │   │   ├── srt_utils.py      ASS 字幕生成（二重縁取り対応）
-│   │   ├── render.py         ffmpeg レンダリング
+│   │   ├── render.py         ffmpeg レンダリング（無音カット + 字幕を 1 パス）
 │   │   ├── vertical.py       9:16 縦型変換
 │   │   ├── clip.py           切り抜き＋テキスト合成
 │   │   └── thumbnail.py      gpt-image-2 サムネイル生成
-│   └── web/                  ローカル FastAPI サーバー（単体利用時）
+│   └── web/                  ローカル Web UI（FastAPI）
 │       ├── app.py
 │       ├── queue_manager.py
 │       ├── jobs.py
 │       └── static/index.html
 │
+├── scripts/
+│   ├── run_worker.py         Lollipop 連携のローカル Worker（オプション）
+│   └── run_*.py              `edit-videos <サブコマンド>` への互換シム（GitHub Actions が使用）
+│
+├── tests/                    pytest（`uv run --extra dev pytest`）
+├── installer/                Windows インストーラー（Inno Setup、uv ベース）
+│
 ├── .github/workflows/
 │   ├── run-pipeline.yml      Video Pipeline（Lollipop / 直接 両対応）
 │   ├── run-short.yml         Short Pipeline（Lollipop / 直接 両対応）
-│   └── run-clip.yml          Clip Video（Lollipop / 直接 両対応）
+│   ├── run-clip.yml          Clip Video（Lollipop / 直接 両対応）
+│   ├── ci.yml                テスト + Linux / Windows での通し実行
+│   └── build-installer.yml   Windows インストーラーのビルド
 │
 ├── .env.example              環境変数テンプレート（ローカル実行時）
-├── pyproject.toml
+├── pyproject.toml / uv.lock  依存定義（uv で管理）
 └── output/                   処理結果の出力先（ローカル実行時）
 ```
 

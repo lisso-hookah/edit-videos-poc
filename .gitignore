@@ -28,3 +28,10 @@ models/
 .vscode/
 .idea/
 .ipynb_checkpoints/
+
+# Local web UI data
+uploads/
+
+# Installer build inputs / outputs
+installer/uv/
+installer/dist_installer/

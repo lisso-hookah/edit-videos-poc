@@ -1,24 +1,15 @@
-; ============================================================
-; EditVideos_Setup.exe — Inno Setup 6.x スクリプト
+﻿;
+; Edit Videos — Windows インストーラー（Inno Setup 6）
 ;
-; ビルド前の準備 (BUILD.md 参照):
-;   installer\
-;     dist\EditVideos.exe   ← PyInstaller でビルド済みランチャー
-;     python-embed\         ← Python 3.11 embeddable を展開したフォルダ
-;     ffmpeg-bin\
-;       ffmpeg.exe
-;       ffprobe.exe
-;     get-pip.py            ← https://bootstrap.pypa.io/get-pip.py
-;     icon.ico              ← create_icon.py で生成
-; ============================================================
-
+; 同梱するのは uv.exe とソースコードだけ。Python 本体と依存パッケージは
+; インストール時に uv が uv.lock のとおりに取得する（要インターネット接続）。
+; ビルド: installer\build.ps1（uv.exe の取得 → ISCC）
+;
 #define AppName      "Edit Videos"
-#define AppVersion   "1.0.0"
+#define AppVersion   "0.1.0"
 #define AppPublisher "lisso-hookah"
 #define AppURL       "https://github.com/lisso-hookah/edit-videos-poc"
-#define AppExeName   "EditVideos.exe"
 
-; ── [Setup] ──────────────────────────────────────────────────────
 [Setup]
 AppId={{7F3A9B2E-C1D4-4E8F-A562-0B1234567890}
 AppName={#AppName}
@@ -26,85 +17,55 @@ AppVersion={#AppVersion}
 AppPublisher={#AppPublisher}
 AppPublisherURL={#AppURL}
 AppSupportURL={#AppURL}/issues
-DefaultDirName={autopf}\EditVideos
+; ユーザー領域に入れる: アプリが自分のフォルダ（.venv / uploads / output / .env）に書き込むため
+DefaultDirName={localappdata}\Programs\EditVideos
 DefaultGroupName={#AppName}
 AllowNoIcons=yes
 OutputDir=dist_installer
 OutputBaseFilename=EditVideos_Setup_{#AppVersion}
-SetupIconFile=icon.ico
-Compression=lzma2/ultra64
+Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
-WizardResizable=yes
-DisableWelcomePage=no
-PrivilegesRequired=admin
+PrivilegesRequired=lowest
 MinVersion=10.0
-UninstallDisplayIcon={app}\{#AppExeName}
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
 UninstallDisplayName={#AppName}
-; インストール後に自動起動するかを選択させる
-CloseApplications=yes
 
-; ── [Languages] ───────────────────────────────────────────────────
 [Languages]
 Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
 
-; ── [Tasks] ───────────────────────────────────────────────────────
 [Tasks]
-Name: "desktopicon";    Description: "デスクトップにショートカットを作成する"; GroupDescription: "追加のショートカット:"
-Name: "startupicon";   Description: "Windows 起動時に自動スタートする（システムトレイ常駐）"; GroupDescription: "スタートアップ:"
+Name: "desktopicon"; Description: "デスクトップにショートカットを作成する"; GroupDescription: "追加のショートカット:"
 
-; ── [Files] ───────────────────────────────────────────────────────
 [Files]
-; ─ ランチャー EXE ─
-Source: "dist\EditVideos.exe";         DestDir: "{app}";          Flags: ignoreversion
+Source: "uv\uv.exe";          DestDir: "{app}";     Flags: ignoreversion
+Source: "..\start.bat";       DestDir: "{app}";     Flags: ignoreversion
+Source: "..\pyproject.toml";  DestDir: "{app}";     Flags: ignoreversion
+Source: "..\uv.lock";         DestDir: "{app}";     Flags: ignoreversion
+Source: "..\README.md";       DestDir: "{app}";     Flags: ignoreversion
+Source: "..\.env.example";    DestDir: "{app}";     Flags: ignoreversion
+Source: "..\src\*";          DestDir: "{app}\src"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "__pycache__\*,*.pyc"
 
-; ─ Python 3.11 embeddable ─
-Source: "python-embed\*";              DestDir: "{app}\python";   Flags: ignoreversion recursesubdirs createallsubdirs
-
-; ─ pip インストーラー ─
-Source: "get-pip.py";                  DestDir: "{app}\python";   Flags: ignoreversion
-
-; ─ ffmpeg バイナリ ─
-Source: "ffmpeg-bin\ffmpeg.exe";       DestDir: "{app}\bin";      Flags: ignoreversion
-Source: "ffmpeg-bin\ffprobe.exe";      DestDir: "{app}\bin";      Flags: ignoreversion
-
-; ─ プロジェクト ソース ─
-Source: "..\src\*";                    DestDir: "{app}\src";      Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\scripts\*";               DestDir: "{app}\scripts";  Flags: ignoreversion recursesubdirs
-Source: "..\pyproject.toml";           DestDir: "{app}";          Flags: ignoreversion
-
-; ─ セットアップスクリプト ─
-Source: "setup_env.py";                DestDir: "{app}";          Flags: ignoreversion
-
-; ── [Icons] ───────────────────────────────────────────────────────
 [Icons]
-Name: "{group}\{#AppName}";                        Filename: "{app}\{#AppExeName}"
+; start.bat は同じフォルダの uv.exe を使って起動する
+Name: "{group}\{#AppName}";                        Filename: "{app}\start.bat"; WorkingDir: "{app}"
 Name: "{group}\{cm:UninstallProgram,{#AppName}}";  Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#AppName}";                  Filename: "{app}\{#AppExeName}"; Tasks: desktopicon
-Name: "{userstartup}\{#AppName}";                  Filename: "{app}\{#AppExeName}"; Tasks: startupicon
+Name: "{autodesktop}\{#AppName}";                  Filename: "{app}\start.bat"; WorkingDir: "{app}"; Tasks: desktopicon
 
-; ── [Run] ─────────────────────────────────────────────────────────
 [Run]
-; Python 環境をセットアップ（インターネット接続が必要、数分かかる）
-Filename: "{app}\python\python.exe";
-  Parameters: "{app}\setup_env.py ""{app}""";
-  StatusMsg: "Python パッケージをインストール中... (数分かかる場合があります)";
-  Flags: runhidden waituntilterminated
+; uv.lock どおりの環境を {app}\.venv に作る。失敗しても初回起動時に start.bat が再試行する
+Filename: "{app}\uv.exe"; Parameters: "sync --frozen"; WorkingDir: "{app}"; StatusMsg: "Python と依存パッケージを取得中...（数分かかる場合があります）"; Flags: runhidden waituntilterminated
 
-; インストール後にアプリを起動するか選択
-Filename: "{app}\{#AppExeName}";
-  Description: "{cm:LaunchProgram,{#AppName}}";
-  Flags: nowait postinstall skipifsilent
+Filename: "{app}\start.bat"; WorkingDir: "{app}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
 
-; ── [UninstallDelete] ─────────────────────────────────────────────
 [UninstallDelete]
-; インストール後に生成されるファイル類を削除
-Type: filesandordirs; Name: "{app}\python\Lib"
+Type: filesandordirs; Name: "{app}\.venv"
 Type: filesandordirs; Name: "{app}\uploads"
 Type: filesandordirs; Name: "{app}\output"
+Type: filesandordirs; Name: "{app}\src"
 Type: files;          Name: "{app}\.env"
 
-; ── [Code] (Pascal) ───────────────────────────────────────────────
 [Code]
 
 // ─── カスタム API キーページの変数 ─────────────────────────────
@@ -134,7 +95,7 @@ begin
   // ── Gemini ──
   GeminiLabel := TLabel.Create(WizardForm);
   GeminiLabel.Parent  := ApiKeyPage.Surface;
-  GeminiLabel.Caption := 'Gemini API キー（Video / Short パイプラインの字幕生成に必須）';
+  GeminiLabel.Caption := 'Gemini API キー（字幕のフィラー除去に使用・省略可）';
   GeminiLabel.Top     := 10;
   GeminiLabel.Left    := 0;
   GeminiLabel.Width   := W;
@@ -228,6 +189,9 @@ var
   Lines: TStringList;
 begin
   EnvPath := ExpandConstant('{app}\.env');
+  // 再インストール時にキー欄を空のまま進めた場合は、既存の .env（入力済みのキー）を残す
+  if FileExists(EnvPath) and (GeminiEdit.Text = '') and (OpenAiEdit.Text = '') then
+    Exit;
   Lines   := TStringList.Create;
   try
     Lines.Add('# Edit Videos 設定ファイル');
@@ -242,8 +206,6 @@ begin
     Lines.Add('# Whisper 文字起こしモデル');
     Lines.Add('WHISPER_MODEL=' + GetWhisperModel);
     Lines.Add('');
-    Lines.Add('# 出力先ディレクトリ（変更する場合のみコメントアウトを外す）');
-    Lines.Add('# WORK_DIR=D:\Videos\output');
     Lines.SaveToFile(EnvPath);
   finally
     Lines.Free;
@@ -255,25 +217,4 @@ procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssPostInstall then
     WriteEnvFile;
-end;
-
-// ─── Gemini キーが空のときに警告を出す ──────────────────────────
-function NextButtonClick(CurPageID: Integer): Boolean;
-begin
-  Result := True;
-  if CurPageID = ApiKeyPage.ID then
-  begin
-    if Trim(GeminiEdit.Text) = '' then
-    begin
-      if MsgBox(
-        'Gemini API キーが入力されていません。' + #13#10 +
-        'Video / Short パイプラインを使う場合は必要です。' + #13#10 + #13#10 +
-        'このまま続けますか？（後で .env ファイルに記入できます）',
-        mbConfirmation, MB_YESNO) = IDNO then
-      begin
-        Result := False;
-        Exit;
-      end;
-    end;
-  end;
 end;

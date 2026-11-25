@@ -21,23 +21,26 @@ import re
 import subprocess
 import sys
 import time
-import tempfile
 from pathlib import Path
 
 import requests
-from dotenv import load_dotenv
-
-load_dotenv()
-
-# ─── 設定 ───────────────────────────────────────────────────────
-API_URL    = os.environ["LOLLIPOP_API_URL"].rstrip("/")
-WORKER_KEY = os.environ["WORKER_KEY"]
-POLL_SEC   = 5       # ポーリング間隔（秒）
-PROG_SEC   = 4       # 進捗送信間隔（秒）
 
 # プロジェクトルート（このファイルの一階層上）
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-SCRIPTS_DIR  = PROJECT_ROOT / "scripts"
+sys.path.insert(0, str(PROJECT_ROOT / "src"))
+
+from edit_videos_poc import config  # noqa: E402,F401  (.env を読み込む)
+from edit_videos_poc.jobspec import build_args, find_output  # noqa: E402
+
+# ─── 設定 ───────────────────────────────────────────────────────
+try:
+    API_URL    = os.environ["LOLLIPOP_API_URL"].rstrip("/")
+    WORKER_KEY = os.environ["WORKER_KEY"]
+except KeyError as missing:
+    sys.exit(f"[worker] .env に {missing.args[0]} を設定してください（.env.example 参照）")
+POLL_SEC   = 5       # ポーリング間隔（秒）
+PROG_SEC   = 4       # 進捗送信間隔（秒）
+
 
 _HEADERS = {"X-Worker-Key": WORKER_KEY}
 _STEP_RE  = re.compile(r"\[(\d+)/(\d+)\]\s*(.*)")
@@ -49,7 +52,7 @@ _STEP_RE  = re.compile(r"\[(\d+)/(\d+)\]\s*(.*)")
 
 def main() -> None:
     print(f"[worker] 起動 → {API_URL}")
-    print(f"[worker] Ctrl+C で停止")
+    print("[worker] Ctrl+C で停止")
     while True:
         try:
             job = fetch_next_job()
@@ -97,7 +100,7 @@ def process_job(job: dict) -> None:
         bg_path = work_dir / "bg_image.jpg"
         stream_download(bg_url, bg_path)
         bg_image_path = bg_path
-        print(f"[worker] 背景画像ダウンロード完了")
+        print("[worker] 背景画像ダウンロード完了")
 
     # ─── パイプライン実行 ─────────────────────────────────────
     try:
@@ -127,14 +130,15 @@ def run_pipeline(
     work_dir: Path,
 ) -> Path | None:
 
-    script, args = build_command(pipeline, params, video_path, bg_image_path)
-    cmd = [sys.executable, str(SCRIPTS_DIR / script)] + args
+    cmd = [sys.executable, "-m", "edit_videos_poc", *build_args(pipeline, params, video_path, bg_image_path)]
 
     env = os.environ.copy()
-    env["WORK_DIR"]      = str(work_dir)
-    env["WHISPER_MODEL"] = str(params.get("whisper_model", "medium"))
+    env["WORK_DIR"]         = str(work_dir)
+    env["WHISPER_MODEL"]    = str(params.get("whisper_model", "medium"))
+    env["PYTHONUNBUFFERED"] = "1"   # 進捗行を終了時ではなく出力時に受け取る
+    env["PYTHONUTF8"]       = "1"
 
-    print(f"[worker] 実行: {script}")
+    print(f"[worker] 実行: {pipeline}")
 
     last_progress_send = time.time()
     tail: list[str] = []
@@ -144,6 +148,8 @@ def run_pipeline(
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         env=env,
         cwd=str(PROJECT_ROOT),
     )
@@ -175,71 +181,6 @@ def run_pipeline(
         )
 
     return find_output(work_dir, pipeline)
-
-
-def build_command(
-    pipeline: str,
-    params: dict,
-    video_path: Path,
-    bg_image_path: Path | None,
-) -> tuple[str, list[str]]:
-
-    vp = str(video_path)
-
-    if pipeline == "pipeline":
-        args = [
-            vp,
-            "--language",    str(params.get("language",    "ja")),
-            "--noise-db",    str(params.get("noise_db",    -30)),
-            "--min-silence", str(params.get("min_silence", 0.5)),
-            "--font-color",  str(params.get("font_color",  "yellow")),
-        ]
-        if params.get("skip_refine"):
-            args.append("--skip-refine")
-        if params.get("thumbnail"):
-            args.append("--thumbnail")
-        return "run_pipeline.py", args
-
-    if pipeline == "short":
-        args = [
-            vp,
-            "--language",   str(params.get("language",   "ja")),
-            "--font-color", str(params.get("font_color", "yellow")),
-            "--blur-sigma", str(params.get("blur_sigma", 40)),
-        ]
-        if params.get("skip_refine"):
-            args.append("--skip-refine")
-        if params.get("bg_color"):
-            args += ["--bg-color", str(params["bg_color"])]
-        if bg_image_path:
-            args += ["--bg-image", str(bg_image_path)]
-        return "run_short.py", args
-
-    if pipeline == "clip":
-        args = [
-            vp,
-            "--start",     str(params.get("start_time", "0")),
-            "--font-size", str(params.get("font_size",  108)),
-            "--text-color", str(params.get("text_color", "white")),
-        ]
-        if params.get("end_time"):
-            args += ["--end", str(params["end_time"])]
-        if params.get("top_text"):
-            args += ["--top-text", str(params["top_text"])]
-        if params.get("bottom_text"):
-            args += ["--bottom-text", str(params["bottom_text"])]
-        return "run_clip.py", args
-
-    raise ValueError(f"不明なパイプライン: {pipeline!r}")
-
-
-def find_output(work_dir: Path, pipeline: str) -> Path | None:
-    step = {"pipeline": "render", "short": "vertical", "clip": "clip"}.get(pipeline, "render")
-    out_dir = work_dir / step
-    if out_dir.exists():
-        for f in sorted(out_dir.glob("*.mp4")):
-            return f
-    return None
 
 
 # ════════════════════════════════════════════════════════════════

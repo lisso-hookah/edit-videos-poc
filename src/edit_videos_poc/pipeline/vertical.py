@@ -6,6 +6,9 @@ from pathlib import Path
 from .. import config
 from ._ffmpeg import run_ffmpeg
 
+# The colour / looped-image backgrounds never end on their own; without shortest=1 ffmpeg encodes forever.
+_OVERLAY_UNTIL_VIDEO_ENDS = "overlay=(W-w)/2:(H-h)/2:shortest=1"
+
 
 def make_vertical(
     video_path: Path,
@@ -28,7 +31,7 @@ def make_vertical(
             f"[0:v]scale={width}:{height}:force_original_aspect_ratio=increase,"
             f"crop={width}:{height},gblur=sigma={blur_sigma}[bg];"
             f"[1:v]{fg_scale}[fg];"
-            "[bg][fg]overlay=(W-w)/2:(H-h)/2"
+            f"[bg][fg]{_OVERLAY_UNTIL_VIDEO_ENDS}"
         )
         cmd = [
             "ffmpeg", "-y",
@@ -43,7 +46,7 @@ def make_vertical(
         filter_complex = (
             f"color=c={bg_color}:s={width}x{height}:r=30[bg];"
             f"[0:v]{fg_scale}[fg];"
-            "[bg][fg]overlay=(W-w)/2:(H-h)/2"
+            f"[bg][fg]{_OVERLAY_UNTIL_VIDEO_ENDS}"
         )
         cmd = [
             "ffmpeg", "-y", "-i", str(video_path),

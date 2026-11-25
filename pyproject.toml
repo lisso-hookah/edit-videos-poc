@@ -1,10 +1,9 @@
 [project]
 name = "edit-videos-poc"
-version = "0.0.1"
+version = "0.1.0"
 description = "Video editing PoC: silence cut, transcription, subtitle, render"
 requires-python = ">=3.11"
 dependencies = [
-    "ffmpeg-python>=0.2.0",
     "faster-whisper>=1.0.0",
     "google-genai>=0.8.0",
     "srt>=3.5.0",
@@ -13,12 +12,23 @@ dependencies = [
     "fastapi>=0.136.1",
     "uvicorn[standard]>=0.46.0",
     "python-multipart>=0.0.27",
-    "aiofiles>=25.1.0",
     "requests>=2.33.1",
+    "imageio-ffmpeg>=0.8.1",
 ]
 
 [project.optional-dependencies]
-dev = ["ruff>=0.6.0"]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.2.0",
+    "ruff>=0.6.0",
+]
+gpu = [
+    "nvidia-cublas-cu12>=12 ; sys_platform == 'linux' or sys_platform == 'win32'",
+    "nvidia-cudnn-cu12>=9,<10 ; sys_platform == 'linux' or sys_platform == 'win32'",
+]
+
+[project.scripts]
+edit-videos = "edit_videos_poc.cli:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -30,3 +40,6 @@ packages = ["src/edit_videos_poc"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

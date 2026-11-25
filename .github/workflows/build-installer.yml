@@ -1,0 +1,41 @@
+name: Build Windows installer
+
+on:
+  pull_request:
+    paths:
+      - "installer/**"
+      - "start.bat"
+      - ".github/workflows/build-installer.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build installer
+        shell: pwsh
+        run: ./installer/build.ps1
+
+      # Install silently into a scratch folder and check the result can actually run.
+      - name: Smoke-test the installer
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem installer/dist_installer/*.exe | Select-Object -First 1
+          $target = Join-Path $env:RUNNER_TEMP 'EditVideos'
+          $p = Start-Process $setup.FullName -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=$target","/LOG=$env:RUNNER_TEMP\setup.log" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { Get-Content "$env:RUNNER_TEMP\setup.log" -Tail 60; throw "installer exited with $($p.ExitCode)" }
+          Get-ChildItem $target
+          if (-not (Test-Path "$target\.venv")) { Get-Content "$env:RUNNER_TEMP\setup.log" -Tail 60; throw '.venv was not created by the installer' }
+          Push-Location $target
+          $env:PYTHONUTF8 = '1'
+          ./uv.exe run --frozen edit-videos doctor
+          if ($LASTEXITCODE -ne 0) { throw 'edit-videos doctor failed' }
+          Pop-Location
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EditVideos_Setup
+          path: installer/dist_installer/*.exe
